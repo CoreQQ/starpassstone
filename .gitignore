@@ -21,3 +21,6 @@ web/uploads/*
 # misc
 *.log
 .DS_Store
+
+# local tooling
+.claude/
