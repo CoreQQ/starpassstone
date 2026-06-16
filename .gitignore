@@ -1,0 +1,23 @@
+# dependencies
+node_modules/
+
+# next.js
+.next/
+next-env.d.ts
+
+# nest.js
+dist/
+
+# env files
+.env
+.env.local
+.env.*.local
+
+# runtime-generated content (managed via the admin panel)
+web/data/
+web/uploads/*
+!web/uploads/.gitkeep
+
+# misc
+*.log
+.DS_Store
