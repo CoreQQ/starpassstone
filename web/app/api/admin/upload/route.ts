@@ -39,10 +39,21 @@ export async function POST(req: Request) {
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  await fs.mkdir(UPLOAD_DIR, { recursive: true });
   const name = `${randomUUID()}.${ext}`;
-  await fs.writeFile(path.join(UPLOAD_DIR, name), buffer);
 
-  // Served by the /api/media/[name] route handler (works for runtime uploads).
+  // Production (Vercel): store in Vercel Blob — the filesystem is read-only.
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const { put } = await import("@vercel/blob");
+    const { url } = await put(`uploads/${name}`, buffer, {
+      access: "public",
+      contentType: file.type,
+      token: process.env.BLOB_READ_WRITE_TOKEN,
+    });
+    return NextResponse.json({ url });
+  }
+
+  // Local dev: write to disk, served by the /api/media/[name] route handler.
+  await fs.mkdir(UPLOAD_DIR, { recursive: true });
+  await fs.writeFile(path.join(UPLOAD_DIR, name), buffer);
   return NextResponse.json({ url: `/api/media/${name}` });
 }

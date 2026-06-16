@@ -82,6 +82,13 @@ Endpoint: `POST /api/contact` `{ "name": "...", "phone": "..." }` → `{ "ok": t
 Configure Telegram via [`api/.env.example`](api/.env.example). To wire the frontend
 to it, set `NEST_API_URL=http://localhost:4000/api` in `web/.env.local`.
 
+## Deploy to Vercel
+
+See **[DEPLOY.md](DEPLOY.md)** for step-by-step instructions. In short: import the
+repo on Vercel with **Root Directory = `web`**, add `ADMIN_PASSWORD` / `ADMIN_SECRET`,
+and connect a **Vercel Blob** store so the admin panel can store photos in
+production. Photos uploaded via `/admin` persist in Blob across deploys.
+
 ## Design notes
 
 - Dark "obsidian" base with a champagne-gold accent that fits natural-stone luxury.
