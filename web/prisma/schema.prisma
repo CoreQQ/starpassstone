@@ -1,0 +1,70 @@
+// Prisma schema — the production data model for Starpass Stone.
+//
+// Used when DATABASE_URL is set (see lib/repo). Without it the app falls back
+// to the JSON/Blob store, so the site stays deployable with zero database.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String?
+  password  String // bcrypt hash
+  role      Role      @default(USER)
+  createdAt DateTime  @default(now())
+  lastLogin DateTime?
+}
+
+model MediaItem {
+  id       String @id @default(cuid())
+  section  String // products | hamamGallery | saunaGallery
+  title    String @default("")
+  desc     String @default("")
+  img      String
+  position Int    @default(0)
+
+  @@index([section, position])
+}
+
+model Visit {
+  id        String   @id @default(cuid())
+  visitorId String
+  at        DateTime @default(now())
+  path      String
+  referrer  String   @default("")
+  isNew     Boolean  @default(true)
+  duration  Int?
+  ip        String   @default("")
+  country   String   @default("")
+  city      String   @default("")
+  provider  String   @default("")
+  device    String   @default("")
+  os        String   @default("")
+  browser   String   @default("")
+  language  String   @default("")
+
+  @@index([at])
+  @@index([visitorId])
+}
+
+model Log {
+  id      String   @id @default(cuid())
+  at      DateTime @default(now())
+  type    String
+  message String
+  ip      String?
+
+  @@index([at])
+}

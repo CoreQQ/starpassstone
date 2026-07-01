@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { readRequestInfo, getIp } from "@/lib/request-info";
-import { recordVisit, recordDuration, addLog } from "@/lib/analytics";
+import { repo } from "@/lib/repo";
 import { rateLimit } from "@/lib/rate-limit";
 import { sendTelegram, esc } from "@/lib/telegram";
 
@@ -40,8 +40,10 @@ export async function POST(req: Request) {
   const visitorId = String(body.visitorId || "").slice(0, 64);
   if (!visitorId) return NextResponse.json({ ok: false }, { status: 400 });
 
+  const r = await repo();
+
   if (body.type === "end") {
-    await recordDuration(visitorId, Number(body.duration));
+    await r.recordDuration(visitorId, Number(body.duration));
     return NextResponse.json({ ok: true });
   }
 
@@ -52,8 +54,8 @@ export async function POST(req: Request) {
   const referrer = String(body.referrer || "").slice(0, 500);
   const isNew = body.isNew !== false;
 
-  await recordVisit({ ...info, visitorId, path, referrer, isNew });
-  await addLog({
+  await r.recordVisit({ ...info, visitorId, path, referrer, isNew });
+  await r.addLog({
     type: "visit",
     ip: info.ip,
     message: `${isNew ? "New" : "Returning"} visitor · ${path} · ${info.country}`,

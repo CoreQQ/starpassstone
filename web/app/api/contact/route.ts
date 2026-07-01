@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { getIp, readRequestInfo } from "@/lib/request-info";
 import { rateLimit } from "@/lib/rate-limit";
-import { addLog } from "@/lib/analytics";
+import { repo } from "@/lib/repo";
 import { sendTelegram, esc } from "@/lib/telegram";
 
 /**
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
 
   const lead = { name, phone, at: new Date().toISOString() };
   const info = readRequestInfo(h);
-  await addLog({ type: "contact", ip, message: `New lead: ${name} · ${phone}` });
+  await (await repo()).addLog({ type: "contact", ip, message: `New lead: ${name} · ${phone}` });
 
   // 1) Forward to NestJS backend if available
   const nestUrl = process.env.NEST_API_URL;

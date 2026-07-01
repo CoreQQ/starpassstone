@@ -11,12 +11,12 @@ import {
   Contact,
   Footer,
 } from "@/components/Sections";
-import { readContent } from "@/lib/store";
+import { repo } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const content = await readContent();
+  const content = await (await repo()).getContent();
   return (
     <>
       <Header />

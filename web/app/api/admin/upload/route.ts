@@ -6,7 +6,7 @@ import { randomUUID } from "crypto";
 import { isAuthed } from "@/lib/auth";
 import { UPLOAD_DIR } from "@/lib/paths";
 import { getIp } from "@/lib/request-info";
-import { addLog } from "@/lib/analytics";
+import { repo } from "@/lib/repo";
 import { sendTelegram, esc } from "@/lib/telegram";
 
 export const dynamic = "force-dynamic";
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
   const sizeKb = Math.round(file.size / 1024);
 
   async function notifyUpload() {
-    await addLog({ type: "upload", ip, message: `Uploaded ${name} (${sizeKb} KB)` });
+    await (await repo()).addLog({ type: "upload", ip, message: `Uploaded ${name} (${sizeKb} KB)` });
     void sendTelegram(`🖼️ *File uploaded*\nName: ${esc(name)}\nSize: ${sizeKb} KB`);
   }
 

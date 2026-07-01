@@ -36,6 +36,10 @@ function item(title: string, img: string, desc?: string): Item {
 }
 
 /** Default content used to seed the store on first run. */
+export function seedContent(): SiteContent {
+  return seed();
+}
+
 function seed(): SiteContent {
   return {
     products: defaultProducts.map((p) => item(p.title, p.img, p.desc)),
@@ -130,8 +134,8 @@ export async function readContent(): Promise<SiteContent> {
   }
 }
 
-/** Validates and normalises an incoming content payload before saving. */
-export async function writeContent(input: unknown): Promise<SiteContent> {
+/** Validates and normalises an incoming content payload (pure, no I/O). */
+export function sanitizeContent(input: unknown): SiteContent {
   const data = input as Partial<SiteContent>;
   const clean = (arr: unknown, withDesc: boolean): Item[] =>
     Array.isArray(arr)
@@ -149,11 +153,16 @@ export async function writeContent(input: unknown): Promise<SiteContent> {
           })
       : [];
 
-  const next: SiteContent = {
+  return {
     products: clean(data.products, true),
     hamamGallery: clean(data.hamamGallery, false),
     saunaGallery: clean(data.saunaGallery, false),
   };
+}
+
+/** Validates and persists an incoming content payload. */
+export async function writeContent(input: unknown): Promise<SiteContent> {
+  const next = sanitizeContent(input);
 
   if (useBlob) {
     await blobWrite(next);
