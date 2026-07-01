@@ -48,8 +48,16 @@ type LogEntry = {
   message: string;
   ip?: string;
 };
+type UserRow = {
+  id: string;
+  email: string;
+  name: string | null;
+  role: "USER" | "ADMIN";
+  createdAt: string;
+  lastLogin: string | null;
+};
 
-type Tab = "dashboard" | "analytics" | "photos" | "logs" | "settings";
+type Tab = "dashboard" | "analytics" | "photos" | "users" | "logs" | "settings";
 
 const SECTIONS: { key: SectionKey; label: string; hasDesc: boolean }[] = [
   { key: "products", label: "Products", hasDesc: true },
@@ -61,6 +69,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "dashboard", label: "Dashboard" },
   { key: "analytics", label: "Analytics" },
   { key: "photos", label: "Photos" },
+  { key: "users", label: "Users" },
   { key: "logs", label: "Logs" },
   { key: "settings", label: "Settings" },
 ];
@@ -75,7 +84,9 @@ export default function AdminPage() {
   const [content, setContent] = useState<Content | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [users, setUsers] = useState<UserRow[]>([]);
   const [telegramOn, setTelegramOn] = useState(false);
+  const [usingDb, setUsingDb] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState("");
@@ -86,12 +97,18 @@ export default function AdminPage() {
       const data = await res.json();
       setStats(data.stats);
       setTelegramOn(!!data.telegramEnabled);
+      setUsingDb(!!data.usingDatabase);
     }
   }, []);
 
   const loadLogs = useCallback(async () => {
     const res = await fetch("/api/admin/logs", { cache: "no-store" });
     if (res.ok) setLogs((await res.json()).logs);
+  }, []);
+
+  const loadUsers = useCallback(async () => {
+    const res = await fetch("/api/admin/users", { cache: "no-store" });
+    if (res.ok) setUsers((await res.json()).users);
   }, []);
 
   const load = useCallback(async () => {
@@ -104,7 +121,8 @@ export default function AdminPage() {
     setContent(await res.json());
     loadAnalytics();
     loadLogs();
-  }, [loadAnalytics, loadLogs]);
+    loadUsers();
+  }, [loadAnalytics, loadLogs, loadUsers]);
 
   useEffect(() => {
     load();
@@ -142,6 +160,7 @@ export default function AdminPage() {
     setContent(null);
     setStats(null);
     setLogs([]);
+    setUsers([]);
   }
 
   async function save() {
@@ -309,8 +328,9 @@ export default function AdminPage() {
             ))}
           </>
         )}
+        {tab === "users" && <Users users={users} onReload={loadUsers} />}
         {tab === "logs" && <Logs logs={logs} onRefresh={loadLogs} />}
-        {tab === "settings" && <Settings telegramOn={telegramOn} />}
+        {tab === "settings" && <Settings telegramOn={telegramOn} usingDb={usingDb} />}
       </main>
     </div>
   );
@@ -556,14 +576,104 @@ function Logs({ logs, onRefresh }: { logs: LogEntry[]; onRefresh: () => void }) 
   );
 }
 
+/* ---------------- Users ---------------- */
+function Users({ users, onReload }: { users: UserRow[]; onReload: () => void }) {
+  async function setRole(id: string, role: "USER" | "ADMIN") {
+    await fetch(`/api/admin/users/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role }),
+    });
+    onReload();
+  }
+  async function remove(id: string) {
+    if (!confirm("Delete this user?")) return;
+    await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
+    onReload();
+  }
+
+  return (
+    <>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <h1 className="display" style={{ fontSize: 34, margin: 0 }}>
+          Users <span className="muted" style={{ fontSize: 18 }}>({users.length})</span>
+        </h1>
+        <button className="btn btn-ghost" style={{ padding: "9px 16px" }} onClick={onReload}>
+          Refresh
+        </button>
+      </div>
+      <div className="card" style={{ padding: 8 }}>
+        {users.length === 0 ? (
+          <p className="muted" style={{ fontSize: 14, padding: 16 }}>
+            No registered users yet. People who sign up at <code>/account</code> appear here.
+          </p>
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
+            <thead>
+              <tr style={{ textAlign: "left", color: "var(--faint)" }}>
+                <Th>Email</Th>
+                <Th>Name</Th>
+                <Th>Role</Th>
+                <Th>Joined</Th>
+                <Th>Last login</Th>
+                <Th>Actions</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((u) => (
+                <tr key={u.id} style={{ borderTop: "1px solid var(--line)" }}>
+                  <Td>{u.email}</Td>
+                  <Td>{u.name || "—"}</Td>
+                  <Td>
+                    <span style={{ color: u.role === "ADMIN" ? "var(--gold-soft)" : "var(--muted)" }}>
+                      {u.role}
+                    </span>
+                  </Td>
+                  <Td>{new Date(u.createdAt).toLocaleDateString()}</Td>
+                  <Td>{u.lastLogin ? new Date(u.lastLogin).toLocaleDateString() : "—"}</Td>
+                  <Td>
+                    <span style={{ display: "flex", gap: 6 }}>
+                      <SmallBtn onClick={() => setRole(u.id, u.role === "ADMIN" ? "USER" : "ADMIN")}>
+                        {u.role === "ADMIN" ? "Make user" : "Make admin"}
+                      </SmallBtn>
+                      <SmallBtn danger onClick={() => remove(u.id)}>
+                        Delete
+                      </SmallBtn>
+                    </span>
+                  </Td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </>
+  );
+}
+
 /* ---------------- Settings ---------------- */
-function Settings({ telegramOn }: { telegramOn: boolean }) {
+function Settings({ telegramOn, usingDb }: { telegramOn: boolean; usingDb: boolean }) {
   return (
     <>
       <h1 className="display" style={{ fontSize: 34, margin: "0 0 20px" }}>
         Settings
       </h1>
       <div style={{ display: "grid", gap: 16, maxWidth: 720 }}>
+        <div className="card" style={{ padding: 24 }}>
+          <h3 style={panelH}>Storage</h3>
+          <p className="muted" style={{ fontSize: 14, lineHeight: 1.6 }}>
+            {usingDb ? (
+              <>
+                <Badge ok /> PostgreSQL via Prisma (<code>DATABASE_URL</code> is set).
+              </>
+            ) : (
+              <>
+                <Badge /> JSON / Vercel Blob. Set <code>DATABASE_URL</code> and run{" "}
+                <code>prisma migrate deploy</code> to switch to PostgreSQL.
+              </>
+            )}
+          </p>
+        </div>
         <div className="card" style={{ padding: 24 }}>
           <h3 style={panelH}>Telegram notifications</h3>
           <p className="muted" style={{ fontSize: 14, lineHeight: 1.6 }}>

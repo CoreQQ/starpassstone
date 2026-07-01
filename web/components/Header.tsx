@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { company, nav } from "@/lib/content";
 import ThemeToggle from "./ThemeToggle";
 
@@ -97,6 +98,19 @@ export default function Header() {
               {n.label}
             </a>
           ))}
+          <Link
+            href="/account"
+            style={{
+              color: "var(--muted)",
+              textDecoration: "none",
+              fontSize: 14.5,
+              fontWeight: 500,
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--gold-soft)")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--muted)")}
+          >
+            Account
+          </Link>
         </nav>
 
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -158,6 +172,18 @@ export default function Header() {
                 {n.label}
               </a>
             ))}
+            <Link
+              href="/account"
+              onClick={() => setOpen(false)}
+              style={{
+                color: "var(--text)",
+                textDecoration: "none",
+                padding: "12px 4px",
+                fontSize: 16,
+              }}
+            >
+              Account
+            </Link>
           </div>
         </div>
       )}

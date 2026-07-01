@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Fraunces } from "next/font/google";
 import "./globals.css";
 import Tracker from "@/components/Tracker";
+import { ToastProvider } from "@/components/Toast";
 import { company } from "@/lib/content";
 
 const inter = Inter({
@@ -115,7 +116,7 @@ export default function RootLayout({
         }
         className={`${inter.variable} ${fraunces.variable}`}
       >
-        {children}
+        <ToastProvider>{children}</ToastProvider>
         <Tracker />
       </body>
     </html>
