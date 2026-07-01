@@ -1,9 +1,12 @@
 @import "tailwindcss";
 
-:root {
+:root,
+:root[data-theme="dark"] {
   --bg: #0a0b0d;
   --bg-elev: #101216;
   --panel: rgba(255, 255, 255, 0.03);
+  --card-grad-1: rgba(255, 255, 255, 0.045);
+  --card-grad-2: rgba(255, 255, 255, 0.015);
   --line: rgba(255, 255, 255, 0.08);
   --line-strong: rgba(255, 255, 255, 0.16);
   --text: #ecebe7;
@@ -16,6 +19,23 @@
   --maxw: 1240px;
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-display: "Fraunces", "Times New Roman", Georgia, serif;
+}
+
+/* Light theme — warm marble palette, same gold accent */
+:root[data-theme="light"] {
+  --bg: #f6f4ef;
+  --bg-elev: #ffffff;
+  --panel: rgba(20, 18, 12, 0.03);
+  --card-grad-1: rgba(255, 255, 255, 0.9);
+  --card-grad-2: rgba(255, 255, 255, 0.55);
+  --line: rgba(20, 18, 12, 0.1);
+  --line-strong: rgba(20, 18, 12, 0.2);
+  --text: #1c1a15;
+  --muted: #5f5b52;
+  --faint: #8f8a7f;
+  --gold: #a3823f;
+  --gold-soft: #8a6c33;
+  --teal: #3c7574;
 }
 
 * {
@@ -35,6 +55,7 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 /* Ambient background: marble grain + tech grid + glow */
@@ -46,7 +67,7 @@ body::before {
   background:
     radial-gradient(1100px 700px at 80% -10%, rgba(200, 169, 106, 0.12), transparent 60%),
     radial-gradient(900px 600px at -10% 20%, rgba(78, 141, 140, 0.1), transparent 55%),
-    linear-gradient(180deg, #0a0b0d 0%, #0a0b0d 100%);
+    var(--bg);
 }
 
 body::after {
@@ -164,7 +185,7 @@ body::after {
 
 /* Glass card */
 .card {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015));
+  background: linear-gradient(180deg, var(--card-grad-1), var(--card-grad-2));
   border: 1px solid var(--line);
   border-radius: var(--radius);
   backdrop-filter: blur(6px);
@@ -243,8 +264,8 @@ body::after {
   width: 100%;
   padding: 14px 16px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--line);
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
   color: var(--text);
   font-size: 15px;
   font-family: inherit;

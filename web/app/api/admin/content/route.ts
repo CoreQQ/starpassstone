@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
+import { headers } from "next/headers";
 import { isAuthed } from "@/lib/auth";
 import { readContent, writeContent } from "@/lib/store";
+import { getIp } from "@/lib/request-info";
+import { addLog } from "@/lib/analytics";
 
 export const dynamic = "force-dynamic";
 
@@ -22,5 +25,10 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
   const saved = await writeContent(body);
+  await addLog({
+    type: "content_update",
+    ip: getIp(await headers()),
+    message: `Content saved · ${saved.products.length} products, ${saved.hamamGallery.length} hamam, ${saved.saunaGallery.length} sauna photos`,
+  });
   return NextResponse.json(saved);
 }

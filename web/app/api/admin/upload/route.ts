@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
+import { headers } from "next/headers";
 import { promises as fs } from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
 import { isAuthed } from "@/lib/auth";
 import { UPLOAD_DIR } from "@/lib/paths";
+import { getIp } from "@/lib/request-info";
+import { addLog } from "@/lib/analytics";
+import { sendTelegram, esc } from "@/lib/telegram";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +44,13 @@ export async function POST(req: Request) {
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const name = `${randomUUID()}.${ext}`;
+  const ip = getIp(await headers());
+  const sizeKb = Math.round(file.size / 1024);
+
+  async function notifyUpload() {
+    await addLog({ type: "upload", ip, message: `Uploaded ${name} (${sizeKb} KB)` });
+    void sendTelegram(`🖼️ *File uploaded*\nName: ${esc(name)}\nSize: ${sizeKb} KB`);
+  }
 
   // Production (Vercel): store in Vercel Blob — the filesystem is read-only.
   if (process.env.BLOB_READ_WRITE_TOKEN) {
@@ -49,11 +60,13 @@ export async function POST(req: Request) {
       contentType: file.type,
       token: process.env.BLOB_READ_WRITE_TOKEN,
     });
+    await notifyUpload();
     return NextResponse.json({ url });
   }
 
   // Local dev: write to disk, served by the /api/media/[name] route handler.
   await fs.mkdir(UPLOAD_DIR, { recursive: true });
   await fs.writeFile(path.join(UPLOAD_DIR, name), buffer);
+  await notifyUpload();
   return NextResponse.json({ url: `/api/media/${name}` });
 }

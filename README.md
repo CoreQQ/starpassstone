@@ -31,19 +31,43 @@ A single, smooth-scrolling landing page covering everything the original site ha
 Text copy lives in [`web/lib/content.ts`](web/lib/content.ts). **All photos are managed
 through the admin panel** (see below) and stored in `web/uploads/`.
 
-## Admin panel — manage all photos
+## Admin dashboard
 
 Go to **`/admin`** (e.g. http://localhost:3000/admin) and sign in with the admin
-password. From there you can, for **Products**, the **Hamam gallery** and the
-**Sauna gallery**:
+password. Login is rate-limited against brute force, and every attempt is logged.
+The panel is organised into tabs:
 
-- **Upload** a photo from your computer (drag-free, just click *Upload*)
-- **Replace** an existing photo
-- Edit the **title** and **description**
-- **Reorder** photos (↑ / ↓) and **Delete** them
-- **Add** new items with *+ Add photo*
+- **Dashboard** — live stat cards (online now, visitors today/week/month, pageviews,
+  average time on site), a table of the latest visits and a recent-activity feed.
+- **Analytics** — bar charts for popular pages, geography, traffic sources, devices
+  and browsers. Auto-refreshes while open.
+- **Photos** — manage images for **Products**, the **Hamam gallery** and the
+  **Sauna gallery**: upload/replace, edit title & description, reorder (↑ / ↓),
+  delete, and *+ Add photo*. Click **Save changes** to publish instantly.
+- **Logs** — full audit trail (visits, logins, uploads, content updates, leads, errors).
+- **Settings** — Telegram/connection status and backup guidance.
 
-Click **Save changes** to publish instantly to the live site.
+## Analytics & Telegram notifications
+
+Every page load is tracked client-side (`components/Tracker.tsx` → `/api/track`),
+capturing IP, country/city, ISP, device, OS, browser, language, referrer, the page
+URL and whether the visitor is new or returning, plus time-on-page via an unload
+beacon. Geo fields come from edge/CDN headers (Vercel/Cloudflare) and degrade to
+"Unknown" elsewhere. Visits and logs are stored as JSON (Vercel Blob in production,
+local files in dev) — **no database required**.
+
+When `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` are set, the bot sends a rich
+notification for **each visit**, and alerts for **admin logins**, **contact leads**,
+**file uploads** and **failed-login/errors**. With no token it stays silent (demo mode).
+
+## SEO, PWA & security
+
+- `sitemap.xml`, `robots.txt`, a web app **manifest** (installable PWA) and an SVG favicon.
+- Schema.org `HomeAndConstructionBusiness` JSON-LD, canonical URL, Open Graph & Twitter cards.
+- Light / dark **theme toggle** (persisted, no flash-of-wrong-theme on load).
+- Security response headers (HSTS, `X-Frame-Options`, `X-Content-Type-Options`,
+  `Referrer-Policy`, `Permissions-Policy`), `poweredByHeader` disabled, and in-memory
+  rate limiting on the tracking, login and contact endpoints.
 
 **Password:** set `ADMIN_PASSWORD` in `web/.env.local` (defaults to `starpass` for local
 dev). Also set a long random `ADMIN_SECRET` to sign the login cookie. See
