@@ -7,7 +7,9 @@ Same information as the original site, rebuilt with a fresh dark, luxury-tech ae
 | Layer | Stack |
 |-------|-------|
 | **Frontend** (`/web`) | Next.js 15 (App Router) · React 19 · TypeScript · Tailwind v4 · custom design system |
-| **Backend** (`/api`) | NestJS 10 · TypeScript · class-validator |
+| **Data layer** (`/web/lib/repo`) | Prisma 6 · PostgreSQL — with a zero-infra JSON/Vercel Blob fallback |
+| **Auth** | Admin: signed-cookie password session · Users: bcrypt + JWT (jose) |
+| **Backend** (`/api`) | NestJS 10 · TypeScript · class-validator (optional lead service) |
 
 The frontend is fully self-contained — it ships its own `/api/contact` route handler,
 so it runs without the NestJS service. The NestJS app is an optional, production-grade
@@ -59,6 +61,43 @@ local files in dev) — **no database required**.
 When `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` are set, the bot sends a rich
 notification for **each visit**, and alerts for **admin logins**, **contact leads**,
 **file uploads** and **failed-login/errors**. With no token it stays silent (demo mode).
+
+## Data layer & database
+
+Every route talks to a **repository** (`web/lib/repo.ts`) instead of a concrete
+store. Two drivers are selected at runtime:
+
+- **PostgreSQL via Prisma** when `DATABASE_URL` is set. Models: `User`,
+  `MediaItem`, `Visit`, `Log` (see `web/prisma/schema.prisma`). On an empty
+  database the content is auto-seeded so the site is never blank.
+- **JSON / Vercel Blob** otherwise — the zero-infrastructure default, so the
+  site still deploys with no database at all.
+
+```bash
+# Use Postgres locally or in prod:
+export DATABASE_URL="postgresql://user:pass@host:5432/starpass"
+npm run db:migrate      # prisma migrate deploy
+npm run build && npm start
+```
+
+`prisma generate` runs automatically on install and build.
+
+## User accounts (JWT)
+
+Visitors can register and sign in at **`/account`**. Passwords are hashed with
+bcrypt; sessions are JWTs (`jose`) stored in an httpOnly cookie. Endpoints live
+under `/api/auth` (`register`, `login`, `logout`, `me`) and are rate-limited.
+Registrations are logged and trigger a Telegram alert. Admins manage everyone
+from the dashboard **Users** tab (promote/demote role, delete).
+
+## Search & extras
+
+- **Site search** — press `⌘/Ctrl-K` (or the header ⌕) for an instant,
+  client-side search over products, hammams, saunas, stones and sections.
+- **Toast notifications** for auth and form actions.
+- **Offline PWA** — a conservative service worker caches build assets and serves
+  an `/offline` fallback page when disconnected.
+- **Breadcrumbs** on subpages.
 
 ## SEO, PWA & security
 

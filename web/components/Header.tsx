@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { company, nav } from "@/lib/content";
 import ThemeToggle from "./ThemeToggle";
+import Search from "./Search";
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
@@ -114,6 +115,7 @@ export default function Header() {
         </nav>
 
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Search />
           <ThemeToggle />
           <a
             href={`https://wa.me/${company.whatsapp}`}

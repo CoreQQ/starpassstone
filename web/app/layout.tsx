@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Fraunces } from "next/font/google";
 import "./globals.css";
 import Tracker from "@/components/Tracker";
+import RegisterSW from "@/components/RegisterSW";
 import { ToastProvider } from "@/components/Toast";
 import { company } from "@/lib/content";
 
@@ -118,6 +119,7 @@ export default function RootLayout({
       >
         <ToastProvider>{children}</ToastProvider>
         <Tracker />
+        <RegisterSW />
       </body>
     </html>
   );
