@@ -255,6 +255,14 @@ body::after {
   background: linear-gradient(90deg, transparent, var(--line-strong), transparent);
 }
 
+/* Original Star Pass Stone logo is black artwork — invert it on dark theme */
+.brand-logo {
+  filter: invert(1) brightness(0.96);
+}
+:root[data-theme="light"] .brand-logo {
+  filter: none;
+}
+
 /* ---------------- Announcement banner ---------------- */
 .banner-bar {
   position: relative;

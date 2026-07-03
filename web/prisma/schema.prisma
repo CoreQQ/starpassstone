@@ -35,10 +35,11 @@ model User {
 
 model MediaItem {
   id       String @id @default(cuid())
-  section  String // products | hamamGallery | saunaGallery
+  section  String // products | hamamGallery | saunaGallery | portfolio
   title    String @default("")
   desc     String @default("")
   img      String
+  tag      String @default("") // portfolio category
   position Int    @default(0)
 
   @@index([section, position])
