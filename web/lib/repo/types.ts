@@ -27,6 +27,38 @@ export type NewUser = {
   role?: Role;
 };
 
+export type NewsPost = {
+  id: string;
+  title: string;
+  body: string;
+  img: string;
+  published: boolean;
+  createdAt: string;
+};
+
+export type Banner = {
+  id: string;
+  text: string;
+  href: string;
+  active: boolean;
+  position: number;
+};
+
+/** Free-form site settings (SEO overrides, contact tweaks, toggles). */
+export type Settings = Record<string, string>;
+
+/** Everything the site stores — the payload of a backup export. */
+export type Backup = {
+  exportedAt: string;
+  content: SiteContent;
+  news: NewsPost[];
+  banners: Banner[];
+  settings: Settings;
+  users: User[];
+  visits: Visit[];
+  logs: LogEntry[];
+};
+
 export interface Repo {
   // Content (products & galleries)
   getContent(): Promise<SiteContent>;
@@ -38,6 +70,22 @@ export interface Repo {
   addLog(entry: Omit<LogEntry, "id" | "at">): Promise<void>;
   getStats(): Promise<Stats>;
   getLogs(limit: number): Promise<LogEntry[]>;
+
+  // News
+  listNews(publishedOnly?: boolean): Promise<NewsPost[]>;
+  saveNews(post: Omit<NewsPost, "createdAt" | "id"> & { id?: string }): Promise<NewsPost>;
+  deleteNews(id: string): Promise<void>;
+
+  // Banners
+  listBanners(activeOnly?: boolean): Promise<Banner[]>;
+  saveBanners(banners: Banner[]): Promise<Banner[]>;
+
+  // Settings
+  getSettings(): Promise<Settings>;
+  saveSettings(settings: Settings): Promise<Settings>;
+
+  // Backup
+  exportBackup(): Promise<Backup>;
 
   // Users
   createUser(user: NewUser): Promise<User>;

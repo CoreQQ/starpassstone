@@ -7,9 +7,15 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// With Supabase, set DATABASE_URL to the pooled (pgbouncer, port 6543)
+// connection string and DIRECT_URL to the direct one (port 5432) — Prisma uses
+// the direct connection for migrations. For plain Postgres, set both to the
+// same URL (or just DATABASE_URL and omit DIRECT_URL from the env — Prisma
+// falls back when the variable equals the primary URL).
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum Role {
@@ -67,4 +73,29 @@ model Log {
   ip      String?
 
   @@index([at])
+}
+
+model News {
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  img       String   @default("")
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model Banner {
+  id       String  @id @default(cuid())
+  text     String
+  href     String  @default("")
+  active   Boolean @default(true)
+  position Int     @default(0)
+}
+
+// Free-form site settings (SEO overrides, toggles) as a key-value store.
+model Setting {
+  key   String @id
+  value String
 }

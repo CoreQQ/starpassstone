@@ -3,7 +3,17 @@
 import { prisma } from "../prisma";
 import { seedContent, sanitizeContent, type Item, type SiteContent } from "../store";
 import { computeStats, type Visit, type LogEntry } from "../analytics";
-import type { Repo, User, UserWithHash, NewUser, Role } from "./types";
+import type {
+  Repo,
+  User,
+  UserWithHash,
+  NewUser,
+  Role,
+  NewsPost,
+  Banner,
+  Settings,
+} from "./types";
+import { randomUUID } from "crypto";
 
 type Section = keyof SiteContent;
 const SECTIONS: Section[] = ["products", "hamamGallery", "saunaGallery"];
@@ -135,6 +145,103 @@ export const prismaDriver: Repo = {
       at: l.at.toISOString(),
       ip: l.ip ?? undefined,
     })) as LogEntry[];
+  },
+
+  listNews: async (publishedOnly = false) => {
+    const rows = await prisma.news.findMany({
+      where: publishedOnly ? { published: true } : undefined,
+      orderBy: { createdAt: "desc" },
+    });
+    return rows.map(
+      (n): NewsPost => ({ ...n, createdAt: n.createdAt.toISOString() })
+    );
+  },
+  saveNews: async (post) => {
+    const data = {
+      title: post.title,
+      body: post.body,
+      img: post.img,
+      published: post.published,
+    };
+    const r = post.id
+      ? await prisma.news.upsert({
+          where: { id: post.id },
+          update: data,
+          create: { id: post.id, ...data },
+        })
+      : await prisma.news.create({ data });
+    return { ...r, createdAt: r.createdAt.toISOString() };
+  },
+  deleteNews: async (id) => {
+    await prisma.news.delete({ where: { id } }).catch(() => {});
+  },
+
+  listBanners: async (activeOnly = false) => {
+    return prisma.banner.findMany({
+      where: activeOnly ? { active: true } : undefined,
+      orderBy: { position: "asc" },
+    });
+  },
+  saveBanners: async (banners) => {
+    const clean: Banner[] = banners.map((b, i) => ({
+      id: b.id || randomUUID(),
+      text: String(b.text ?? "").slice(0, 300),
+      href: String(b.href ?? "").slice(0, 500),
+      active: !!b.active,
+      position: i,
+    }));
+    await prisma.$transaction([
+      prisma.banner.deleteMany({}),
+      prisma.banner.createMany({ data: clean }),
+    ]);
+    return clean;
+  },
+
+  getSettings: async () => {
+    const rows = await prisma.setting.findMany();
+    return Object.fromEntries(rows.map((r) => [r.key, r.value])) as Settings;
+  },
+  saveSettings: async (settings) => {
+    const rows = Object.entries(settings).map(([key, value]) => ({
+      key,
+      value: String(value),
+    }));
+    await prisma.$transaction([
+      prisma.setting.deleteMany({}),
+      prisma.setting.createMany({ data: rows }),
+    ]);
+    return settings;
+  },
+
+  exportBackup: async () => {
+    const [content, news, banners, settings, users, visitRows, logRows] =
+      await Promise.all([
+        prismaDriver.getContent(),
+        prismaDriver.listNews(),
+        prismaDriver.listBanners(),
+        prismaDriver.getSettings(),
+        prismaDriver.listUsers(),
+        prisma.visit.findMany({ orderBy: { at: "asc" } }),
+        prisma.log.findMany({ orderBy: { at: "asc" } }),
+      ]);
+    return {
+      exportedAt: new Date().toISOString(),
+      content,
+      news,
+      banners,
+      settings,
+      users,
+      visits: visitRows.map((v) => ({
+        ...v,
+        at: v.at.toISOString(),
+        duration: v.duration ?? undefined,
+      })),
+      logs: logRows.map((l) => ({
+        ...l,
+        at: l.at.toISOString(),
+        ip: l.ip ?? undefined,
+      })) as LogEntry[],
+    };
   },
 
   createUser: async (user: NewUser) => {

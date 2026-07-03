@@ -56,8 +56,32 @@ type UserRow = {
   createdAt: string;
   lastLogin: string | null;
 };
+type NewsRow = {
+  id: string;
+  title: string;
+  body: string;
+  img: string;
+  published: boolean;
+  createdAt: string;
+};
+type BannerRow = {
+  id: string;
+  text: string;
+  href: string;
+  active: boolean;
+  position: number;
+};
+type SettingsMap = Record<string, string>;
 
-type Tab = "dashboard" | "analytics" | "photos" | "users" | "logs" | "settings";
+type Tab =
+  | "dashboard"
+  | "analytics"
+  | "photos"
+  | "news"
+  | "banners"
+  | "users"
+  | "logs"
+  | "settings";
 
 const SECTIONS: { key: SectionKey; label: string; hasDesc: boolean }[] = [
   { key: "products", label: "Products", hasDesc: true },
@@ -69,6 +93,8 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "dashboard", label: "Dashboard" },
   { key: "analytics", label: "Analytics" },
   { key: "photos", label: "Photos" },
+  { key: "news", label: "News" },
+  { key: "banners", label: "Banners" },
   { key: "users", label: "Users" },
   { key: "logs", label: "Logs" },
   { key: "settings", label: "Settings" },
@@ -85,6 +111,9 @@ export default function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [users, setUsers] = useState<UserRow[]>([]);
+  const [news, setNews] = useState<NewsRow[]>([]);
+  const [banners, setBanners] = useState<BannerRow[]>([]);
+  const [settings, setSettings] = useState<SettingsMap>({});
   const [telegramOn, setTelegramOn] = useState(false);
   const [usingDb, setUsingDb] = useState(false);
 
@@ -111,6 +140,21 @@ export default function AdminPage() {
     if (res.ok) setUsers((await res.json()).users);
   }, []);
 
+  const loadNews = useCallback(async () => {
+    const res = await fetch("/api/admin/news", { cache: "no-store" });
+    if (res.ok) setNews((await res.json()).news);
+  }, []);
+
+  const loadBanners = useCallback(async () => {
+    const res = await fetch("/api/admin/banners", { cache: "no-store" });
+    if (res.ok) setBanners((await res.json()).banners);
+  }, []);
+
+  const loadSettings = useCallback(async () => {
+    const res = await fetch("/api/admin/settings", { cache: "no-store" });
+    if (res.ok) setSettings((await res.json()).settings);
+  }, []);
+
   const load = useCallback(async () => {
     const res = await fetch("/api/admin/content", { cache: "no-store" });
     if (res.status === 401) {
@@ -122,7 +166,10 @@ export default function AdminPage() {
     loadAnalytics();
     loadLogs();
     loadUsers();
-  }, [loadAnalytics, loadLogs, loadUsers]);
+    loadNews();
+    loadBanners();
+    loadSettings();
+  }, [loadAnalytics, loadLogs, loadUsers, loadNews, loadBanners, loadSettings]);
 
   useEffect(() => {
     load();
@@ -328,9 +375,18 @@ export default function AdminPage() {
             ))}
           </>
         )}
+        {tab === "news" && <NewsTab news={news} onReload={loadNews} />}
+        {tab === "banners" && <BannersTab banners={banners} onReload={loadBanners} />}
         {tab === "users" && <Users users={users} onReload={loadUsers} />}
         {tab === "logs" && <Logs logs={logs} onRefresh={loadLogs} />}
-        {tab === "settings" && <Settings telegramOn={telegramOn} usingDb={usingDb} />}
+        {tab === "settings" && (
+          <Settings
+            telegramOn={telegramOn}
+            usingDb={usingDb}
+            settings={settings}
+            onSaved={setSettings}
+          />
+        )}
       </main>
     </div>
   );
@@ -576,6 +632,240 @@ function Logs({ logs, onRefresh }: { logs: LogEntry[]; onRefresh: () => void }) 
   );
 }
 
+/* ---------------- News ---------------- */
+function NewsTab({ news, onReload }: { news: NewsRow[]; onReload: () => void }) {
+  const empty = { id: "", title: "", body: "", img: "", published: true };
+  const [draft, setDraft] = useState<typeof empty>(empty);
+  const [busy, setBusy] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  async function save() {
+    if (!draft.title.trim()) return;
+    setBusy(true);
+    const res = await fetch("/api/admin/news", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...draft, id: draft.id || undefined }),
+    });
+    setBusy(false);
+    if (res.ok) {
+      setDraft(empty);
+      onReload();
+    }
+  }
+  async function remove(id: string) {
+    if (!confirm("Delete this post?")) return;
+    await fetch(`/api/admin/news?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    onReload();
+  }
+  async function upload(file: File) {
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+    setUploading(false);
+    if (res.ok) {
+      const { url } = await res.json();
+      setDraft((d) => ({ ...d, img: url }));
+    }
+  }
+
+  return (
+    <>
+      <h1 className="display" style={{ fontSize: 34, margin: "0 0 20px" }}>
+        News
+      </h1>
+      <div className="card" style={{ padding: 24, marginBottom: 28 }}>
+        <h3 style={panelH}>{draft.id ? "Edit post" : "New post"}</h3>
+        <div style={{ display: "grid", gap: 10 }}>
+          <input
+            className="field"
+            placeholder="Title"
+            value={draft.title}
+            onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+          />
+          <textarea
+            className="field"
+            placeholder="Text"
+            rows={4}
+            value={draft.body}
+            style={{ resize: "vertical", fontFamily: "inherit" }}
+            onChange={(e) => setDraft({ ...draft, body: e.target.value })}
+          />
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <button
+              className="btn btn-ghost"
+              style={{ padding: "9px 16px" }}
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+            >
+              {uploading ? "Uploading…" : draft.img ? "Replace image" : "Add image"}
+            </button>
+            {draft.img && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={draft.img} alt="" style={{ height: 44, borderRadius: 8 }} />
+            )}
+            <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 14 }}>
+              <input
+                type="checkbox"
+                checked={draft.published}
+                onChange={(e) => setDraft({ ...draft, published: e.target.checked })}
+              />
+              Published
+            </label>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) upload(f);
+                e.target.value = "";
+              }}
+            />
+            <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+              {draft.id && (
+                <button className="btn btn-ghost" style={{ padding: "9px 16px" }} onClick={() => setDraft(empty)}>
+                  Cancel
+                </button>
+              )}
+              <button
+                className="btn btn-primary"
+                style={{ padding: "9px 20px", opacity: busy ? 0.7 : 1 }}
+                onClick={save}
+                disabled={busy || !draft.title.trim()}
+              >
+                {busy ? "Saving…" : draft.id ? "Update post" : "Publish post"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gap: 12 }}>
+        {news.length === 0 && <p className="muted">No news posts yet.</p>}
+        {news.map((n) => (
+          <div key={n.id} className="card" style={{ padding: 18, display: "flex", gap: 16, alignItems: "center" }}>
+            {n.img && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={n.img} alt="" style={{ width: 72, height: 52, objectFit: "cover", borderRadius: 8 }} />
+            )}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 600, fontSize: 15 }}>
+                {n.title}{" "}
+                {!n.published && (
+                  <span className="muted" style={{ fontSize: 12 }}>· draft</span>
+                )}
+              </div>
+              <div className="muted" style={{ fontSize: 13, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {new Date(n.createdAt).toLocaleDateString()} — {n.body}
+              </div>
+            </div>
+            <SmallBtn onClick={() => setDraft({ id: n.id, title: n.title, body: n.body, img: n.img, published: n.published })}>
+              Edit
+            </SmallBtn>
+            <SmallBtn danger onClick={() => remove(n.id)}>
+              Delete
+            </SmallBtn>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+/* ---------------- Banners ---------------- */
+function BannersTab({ banners, onReload }: { banners: BannerRow[]; onReload: () => void }) {
+  const [rows, setRows] = useState<BannerRow[]>(banners);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => setRows(banners), [banners]);
+
+  function set(i: number, patch: Partial<BannerRow>) {
+    setRows((r) => r.map((b, j) => (j === i ? { ...b, ...patch } : b)));
+  }
+  function move(i: number, dir: -1 | 1) {
+    const j = i + dir;
+    if (j < 0 || j >= rows.length) return;
+    const next = [...rows];
+    [next[i], next[j]] = [next[j], next[i]];
+    setRows(next);
+  }
+  async function save() {
+    setBusy(true);
+    const res = await fetch("/api/admin/banners", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ banners: rows }),
+    });
+    setBusy(false);
+    if (res.ok) onReload();
+  }
+
+  return (
+    <>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <h1 className="display" style={{ fontSize: 34, margin: 0 }}>
+          Banners
+        </h1>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            className="btn btn-ghost"
+            style={{ padding: "9px 16px" }}
+            onClick={() =>
+              setRows([...rows, { id: "", text: "", href: "", active: true, position: rows.length }])
+            }
+          >
+            + Add banner
+          </button>
+          <button
+            className="btn btn-primary"
+            style={{ padding: "9px 20px", opacity: busy ? 0.7 : 1 }}
+            onClick={save}
+            disabled={busy}
+          >
+            {busy ? "Saving…" : "Save banners"}
+          </button>
+        </div>
+      </div>
+      <p className="muted" style={{ marginTop: -8, fontSize: 14 }}>
+        Active banners rotate in the announcement bar at the top of the site.
+      </p>
+      <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
+        {rows.length === 0 && <p className="muted">No banners yet.</p>}
+        {rows.map((b, i) => (
+          <div key={b.id || `new-${i}`} className="card" style={{ padding: 16, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <input
+              className="field"
+              placeholder="Banner text"
+              value={b.text}
+              style={{ flex: 2, minWidth: 200 }}
+              onChange={(e) => set(i, { text: e.target.value })}
+            />
+            <input
+              className="field"
+              placeholder="Link (optional)"
+              value={b.href}
+              style={{ flex: 1, minWidth: 140 }}
+              onChange={(e) => set(i, { href: e.target.value })}
+            />
+            <label style={{ display: "flex", gap: 7, alignItems: "center", fontSize: 13.5 }}>
+              <input type="checkbox" checked={b.active} onChange={(e) => set(i, { active: e.target.checked })} />
+              Active
+            </label>
+            <SmallBtn disabled={i === 0} onClick={() => move(i, -1)}>↑</SmallBtn>
+            <SmallBtn disabled={i === rows.length - 1} onClick={() => move(i, 1)}>↓</SmallBtn>
+            <SmallBtn danger onClick={() => setRows(rows.filter((_, j) => j !== i))}>
+              Delete
+            </SmallBtn>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
 /* ---------------- Users ---------------- */
 function Users({ users, onReload }: { users: UserRow[]; onReload: () => void }) {
   async function setRole(id: string, role: "USER" | "ADMIN") {
@@ -652,13 +942,104 @@ function Users({ users, onReload }: { users: UserRow[]; onReload: () => void }) 
 }
 
 /* ---------------- Settings ---------------- */
-function Settings({ telegramOn, usingDb }: { telegramOn: boolean; usingDb: boolean }) {
+const SEO_FIELDS: { key: string; label: string; area?: boolean }[] = [
+  { key: "seoTitle", label: "SEO title" },
+  { key: "seoDescription", label: "SEO description", area: true },
+  { key: "seoKeywords", label: "Keywords (comma-separated)" },
+  { key: "ogTitle", label: "Open Graph title" },
+  { key: "ogDescription", label: "Open Graph description", area: true },
+  { key: "announcement", label: "Announcement (fallback banner text)" },
+];
+
+function Settings({
+  telegramOn,
+  usingDb,
+  settings,
+  onSaved,
+}: {
+  telegramOn: boolean;
+  usingDb: boolean;
+  settings: SettingsMap;
+  onSaved: (s: SettingsMap) => void;
+}) {
+  const [form, setForm] = useState<SettingsMap>(settings);
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
+  useEffect(() => setForm(settings), [settings]);
+
+  async function saveSeo() {
+    setBusy(true);
+    const res = await fetch("/api/admin/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+    setBusy(false);
+    if (res.ok) {
+      onSaved((await res.json()).settings);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    }
+  }
+
   return (
     <>
       <h1 className="display" style={{ fontSize: 34, margin: "0 0 20px" }}>
         Settings
       </h1>
       <div style={{ display: "grid", gap: 16, maxWidth: 720 }}>
+        <div className="card" style={{ padding: 24 }}>
+          <h3 style={panelH}>SEO &amp; site settings</h3>
+          <p className="muted" style={{ fontSize: 13.5, marginTop: -6 }}>
+            Overrides the built-in metadata. Leave a field empty to use the default.
+          </p>
+          <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
+            {SEO_FIELDS.map((f) =>
+              f.area ? (
+                <textarea
+                  key={f.key}
+                  className="field"
+                  placeholder={f.label}
+                  rows={2}
+                  value={form[f.key] ?? ""}
+                  style={{ resize: "vertical", fontFamily: "inherit" }}
+                  onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
+                />
+              ) : (
+                <input
+                  key={f.key}
+                  className="field"
+                  placeholder={f.label}
+                  value={form[f.key] ?? ""}
+                  onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
+                />
+              )
+            )}
+            <button
+              className="btn btn-primary"
+              style={{ justifySelf: "start", padding: "10px 22px", opacity: busy ? 0.7 : 1 }}
+              onClick={saveSeo}
+              disabled={busy}
+            >
+              {busy ? "Saving…" : saved ? "Saved ✓" : "Save settings"}
+            </button>
+          </div>
+        </div>
+
+        <div className="card" style={{ padding: 24 }}>
+          <h3 style={panelH}>Database backup</h3>
+          <p className="muted" style={{ fontSize: 14, lineHeight: 1.6 }}>
+            Download a full JSON export of everything the site stores — content,
+            news, banners, settings, users, visits and logs.
+          </p>
+          <a
+            href="/api/admin/backup"
+            className="btn btn-ghost"
+            style={{ marginTop: 12, padding: "10px 20px", display: "inline-flex" }}
+          >
+            ⬇ Download backup
+          </a>
+        </div>
         <div className="card" style={{ padding: 24 }}>
           <h3 style={panelH}>Storage</h3>
           <p className="muted" style={{ fontSize: 14, lineHeight: 1.6 }}>
@@ -696,14 +1077,6 @@ function Settings({ telegramOn, usingDb }: { telegramOn: boolean; usingDb: boole
             The admin password is set with the <code>ADMIN_PASSWORD</code> environment
             variable and the session cookie is signed with <code>ADMIN_SECRET</code>.
             Change these in your host&apos;s environment settings, then redeploy.
-          </p>
-        </div>
-        <div className="card" style={{ padding: 24 }}>
-          <h3 style={panelH}>Data &amp; backups</h3>
-          <p className="muted" style={{ fontSize: 14, lineHeight: 1.6 }}>
-            Content, visits and logs are stored as JSON (Vercel Blob in production,
-            local files in development). To back up, download{" "}
-            <code>content.json</code> and <code>analytics.json</code> from your Blob store.
           </p>
         </div>
       </div>

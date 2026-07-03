@@ -15,39 +15,47 @@ import {
   addLog as anAddLog,
   computeStats,
 } from "../analytics";
-import type { Repo, User, UserWithHash, NewUser, Role } from "./types";
+import type {
+  Repo,
+  User,
+  UserWithHash,
+  NewUser,
+  Role,
+  NewsPost,
+  Banner,
+  Settings,
+} from "./types";
 
-const USERS_KEY = "users.json";
 const DATA_DIR = path.join(process.cwd(), "data");
-const USERS_FILE = path.join(DATA_DIR, USERS_KEY);
 const useBlob = !!process.env.BLOB_READ_WRITE_TOKEN;
 const BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
 
-async function readUsers(): Promise<UserWithHash[]> {
+/** Generic keyed JSON document store (Vercel Blob in prod, local file in dev). */
+async function readJson<T>(key: string, fallback: T): Promise<T> {
   if (useBlob) {
     const { list } = await import("@vercel/blob");
-    const { blobs } = await list({ prefix: USERS_KEY, token: BLOB_TOKEN });
-    const found = blobs.find((b) => b.pathname === USERS_KEY);
-    if (!found) return [];
+    const { blobs } = await list({ prefix: key, token: BLOB_TOKEN });
+    const found = blobs.find((b) => b.pathname === key);
+    if (!found) return fallback;
     const res = await fetch(found.url, { cache: "no-store" });
-    if (!res.ok) return [];
+    if (!res.ok) return fallback;
     try {
-      return (await res.json()) as UserWithHash[];
+      return (await res.json()) as T;
     } catch {
-      return [];
+      return fallback;
     }
   }
   try {
-    return JSON.parse(await fs.readFile(USERS_FILE, "utf8")) as UserWithHash[];
+    return JSON.parse(await fs.readFile(path.join(DATA_DIR, key), "utf8")) as T;
   } catch {
-    return [];
+    return fallback;
   }
 }
 
-async function writeUsers(users: UserWithHash[]): Promise<void> {
+async function writeJson(key: string, data: unknown): Promise<void> {
   if (useBlob) {
     const { put } = await import("@vercel/blob");
-    await put(USERS_KEY, JSON.stringify(users), {
+    await put(key, JSON.stringify(data), {
       access: "public",
       contentType: "application/json",
       addRandomSuffix: false,
@@ -57,9 +65,12 @@ async function writeUsers(users: UserWithHash[]): Promise<void> {
     });
   } else {
     await fs.mkdir(DATA_DIR, { recursive: true });
-    await fs.writeFile(USERS_FILE, JSON.stringify(users), "utf8");
+    await fs.writeFile(path.join(DATA_DIR, key), JSON.stringify(data), "utf8");
   }
 }
+
+const readUsers = () => readJson<UserWithHash[]>("users.json", []);
+const writeUsers = (users: UserWithHash[]) => writeJson("users.json", users);
 
 const strip = (u: UserWithHash): User => {
   const { password: _pw, ...rest } = u;
@@ -78,6 +89,70 @@ export const jsonDriver: Repo = {
   addLog: (entry) => anAddLog(entry),
   getStats: async () => computeStats(await readAnalytics()),
   getLogs: async (limit) => (await readAnalytics()).logs.slice(-limit).reverse(),
+
+  listNews: async (publishedOnly = false) => {
+    const news = await readJson<NewsPost[]>("news.json", []);
+    const sorted = news.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+    return publishedOnly ? sorted.filter((n) => n.published) : sorted;
+  },
+  saveNews: async (post) => {
+    const news = await readJson<NewsPost[]>("news.json", []);
+    const existing = post.id ? news.find((n) => n.id === post.id) : undefined;
+    const record: NewsPost = {
+      id: existing?.id ?? randomUUID(),
+      title: post.title,
+      body: post.body,
+      img: post.img,
+      published: post.published,
+      createdAt: existing?.createdAt ?? new Date().toISOString(),
+    };
+    const next = existing
+      ? news.map((n) => (n.id === record.id ? record : n))
+      : [...news, record];
+    await writeJson("news.json", next);
+    return record;
+  },
+  deleteNews: async (id) => {
+    const news = await readJson<NewsPost[]>("news.json", []);
+    await writeJson("news.json", news.filter((n) => n.id !== id));
+  },
+
+  listBanners: async (activeOnly = false) => {
+    const banners = await readJson<Banner[]>("banners.json", []);
+    const sorted = banners.sort((a, b) => a.position - b.position);
+    return activeOnly ? sorted.filter((b) => b.active) : sorted;
+  },
+  saveBanners: async (banners) => {
+    const clean = banners.map((b, i) => ({
+      id: b.id || randomUUID(),
+      text: String(b.text ?? "").slice(0, 300),
+      href: String(b.href ?? "").slice(0, 500),
+      active: !!b.active,
+      position: i,
+    }));
+    await writeJson("banners.json", clean);
+    return clean;
+  },
+
+  getSettings: () => readJson<Settings>("settings.json", {}),
+  saveSettings: async (settings) => {
+    await writeJson("settings.json", settings);
+    return settings;
+  },
+
+  exportBackup: async () => {
+    const analytics = await readAnalytics();
+    return {
+      exportedAt: new Date().toISOString(),
+      content: await readContent(),
+      news: await readJson<NewsPost[]>("news.json", []),
+      banners: await readJson<Banner[]>("banners.json", []),
+      settings: await readJson<Settings>("settings.json", {}),
+      users: (await readUsers()).map(strip),
+      visits: analytics.visits,
+      logs: analytics.logs,
+    };
+  },
 
   createUser: async (user: NewUser) => {
     const users = await readUsers();

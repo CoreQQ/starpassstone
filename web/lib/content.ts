@@ -29,6 +29,7 @@ export const nav = [
   { id: "hamam", label: "Hamams" },
   { id: "sauna", label: "Saunas" },
   { id: "about", label: "About" },
+  { id: "faq", label: "FAQ" },
   { id: "contact", label: "Contact" },
 ];
 
@@ -39,6 +40,66 @@ export const categories = [
   "Table tops",
   "Bathrooms",
   "Stone",
+];
+
+export const advantages = [
+  {
+    icon: "◆",
+    title: "Since 1998",
+    body: "More than 25 years of craft — a reliable partner and a high-level professional in natural stone.",
+  },
+  {
+    icon: "⟐",
+    title: "Turnkey, A to Z",
+    body: "One team from the first measurement through design, production and installation to lifelong maintenance.",
+  },
+  {
+    icon: "❖",
+    title: "100% natural stone",
+    body: "Slabs selected at quarries worldwide — marble, granite, onyx and quartzite matched to your space.",
+  },
+  {
+    icon: "✦",
+    title: "Author's supervision",
+    body: "Every design project is delivered with the author's ongoing support at all stages of the order.",
+  },
+  {
+    icon: "◈",
+    title: "Personal guidance",
+    body: "Petro Rudenko, your personal guide, helps you choose the right stone for your project.",
+  },
+  {
+    icon: "△",
+    title: "Transparent costing",
+    body: "Clear average-cost estimates and instructions before any work begins — no surprises.",
+  },
+];
+
+export const faq = [
+  {
+    q: "What products do you make from natural stone?",
+    a: "Fireplaces (classic, electric and bio), hammams, saunas, table tops and kitchen worktops, bathrooms, staircases, marble columns and outdoor BBQ zones — any style and degree of complexity.",
+  },
+  {
+    q: "Which stones do you work with?",
+    a: "A curated palette from quarries worldwide: Calacatta marble, Sadolit Blue quartzite, Ukrainian Labradorite granite, Nero Marquina marble and translucent Onyx, among others.",
+  },
+  {
+    q: "Do you build hammams for private homes?",
+    a: "Yes — we build Turkish baths for both private and commercial use, working closely with the client and using premium materials and advanced equipment (EOS, Sawo steam generators).",
+  },
+  {
+    q: "Is a hammam suitable if a sauna doesn't suit me?",
+    a: "Often yes. The hammam has no high temperatures, so it has almost no contraindications — it benefits blood vessels, skin and the respiratory system while letting you fully relax.",
+  },
+  {
+    q: "How much will my project cost?",
+    a: "We provide transparent average-cost estimates and clear guidance before any work begins. Send us your idea and we'll prepare a costing for your exact project.",
+  },
+  {
+    q: "Do you handle the whole project?",
+    a: "Yes — Starpass Stone provides the complete range of services, from measurements to turnkey works and ongoing maintenance, with the author's supervision throughout.",
+  },
 ];
 
 export const design = {

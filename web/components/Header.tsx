@@ -20,14 +20,12 @@ export default function Header() {
   return (
     <header
       style={{
-        position: "fixed",
+        position: "sticky",
         top: 0,
-        left: 0,
-        right: 0,
         zIndex: 50,
         transition: "all .3s ease",
-        background: scrolled ? "rgba(10,11,13,0.72)" : "transparent",
-        backdropFilter: scrolled ? "blur(14px)" : "none",
+        background: scrolled ? "color-mix(in srgb, var(--bg) 78%, transparent)" : "transparent",
+        backdropFilter: scrolled ? "blur(16px)" : "none",
         borderBottom: scrolled
           ? "1px solid var(--line)"
           : "1px solid transparent",

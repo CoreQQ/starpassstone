@@ -17,6 +17,10 @@ export type {
   Visit,
   LogEntry,
   Stats,
+  NewsPost,
+  Banner,
+  Settings,
+  Backup,
 } from "./repo/types";
 
 export const usingDatabase = !!process.env.DATABASE_URL;
