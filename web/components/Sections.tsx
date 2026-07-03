@@ -416,9 +416,10 @@ export function GallerySection({ items }: { items: Item[] }) {
             fireplaces, hammams, saunas and production.
           </p>
         </FadeUp>
-        <FadeUp>
-          <PortfolioGallery items={items} />
-        </FadeUp>
+        {/* Not wrapped in a scroll-reveal: the grid is taller than the viewport
+            on phones, so a visibility-fraction trigger would never fire. The
+            tiles animate themselves via CSS on mount. */}
+        <PortfolioGallery items={items} />
       </div>
     </section>
   );
