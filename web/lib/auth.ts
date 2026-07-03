@@ -3,9 +3,11 @@ import { cookies } from "next/headers";
 
 export const COOKIE = "sps_admin";
 
-const SECRET = process.env.ADMIN_SECRET || "starpass-dev-secret-change-me";
+// Values are trimmed defensively: a trailing space or newline pasted into the
+// host's env-var UI is a classic silent cause of "wrong password".
+const SECRET = process.env.ADMIN_SECRET?.trim() || "starpass-dev-secret-change-me";
 /** Admin password. Override with ADMIN_PASSWORD in .env.local for production. */
-export const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "starpass";
+export const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD?.trim() || "starpass";
 
 export function makeToken(): string {
   return createHmac("sha256", SECRET).update("admin-session").digest("hex");

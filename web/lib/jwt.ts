@@ -8,7 +8,7 @@ import { cookies } from "next/headers";
 export const USER_COOKIE = "sps_user";
 
 const SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "starpass-dev-jwt-secret-change-me"
+  process.env.JWT_SECRET?.trim() || "starpass-dev-jwt-secret-change-me"
 );
 const EXPIRY = "7d";
 

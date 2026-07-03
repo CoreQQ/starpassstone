@@ -7,8 +7,9 @@
 // function instance is frozen as soon as the response is returned, so
 // fire-and-forget sends are silently lost.
 
-const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+// Trimmed defensively — a pasted trailing space/newline breaks the API call.
+const TOKEN = process.env.TELEGRAM_BOT_TOKEN?.trim();
+const CHAT_ID = process.env.TELEGRAM_CHAT_ID?.trim();
 
 export const telegramEnabled = !!(TOKEN && CHAT_ID);
 
