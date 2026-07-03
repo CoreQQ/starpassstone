@@ -37,8 +37,15 @@ fade via `app/template.tsx`):
 - **FAQ** — accordion with `FAQPage` structured data for rich results
 - **Contact & footer** — Dublin address, three phone numbers, email, WhatsApp
 
-Text copy lives in [`web/lib/content.ts`](web/lib/content.ts). **All photos are managed
-through the admin panel** (see below) and stored in `web/uploads/`.
+Text copy lives in [`web/lib/content.ts`](web/lib/content.ts). The **original
+site's 98 photos** are mirrored in [`web/public/photos/`](web/public/photos)
+(`1.jpg`–`98.jpg`) and used as the default product/gallery images; they are
+served through `next/image` (AVIF/WebP, lazy loading). **All photos can be
+replaced through the admin panel** (see below); admin uploads go to Vercel
+Blob in production or `web/uploads/` locally.
+
+> 🇷🇺 Пошаговая инструкция по настройке (Telegram, Supabase, Vercel):
+> **[SETUP.md](SETUP.md)**
 
 ## Admin dashboard
 

@@ -144,46 +144,48 @@ export const stones = [
   },
 ];
 
+// Product photos are the original starpassstone.net portfolio images,
+// mirrored into /public/photos (see README "Photos" section).
 export const products = [
   {
     title: "Marble columns",
     desc: "Hand-finished columns and architectural elements in solid natural stone.",
-    img: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1200&q=80",
+    img: "/photos/26.jpg",
   },
   {
     title: "Stone bathrooms",
     desc: "Full bathroom suites — vanities, basins, walls and floors in matched stone.",
-    img: "https://images.unsplash.com/photo-1620626011761-996317b8d101?w=1200&q=80",
+    img: "/photos/31.jpg",
   },
   {
     title: "Staircases",
     desc: "Solid and cladded stone stairs engineered for a lifetime of use.",
-    img: "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=1200&q=80",
+    img: "/photos/34.jpg",
   },
   {
     title: "Table tops",
     desc: "Kitchen worktops and tables cut from a single book-matched slab.",
-    img: "https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=1200&q=80",
+    img: "/photos/40.jpg",
   },
   {
     title: "Fireplaces",
     desc: "Bespoke mantels and surrounds — classic to contemporary.",
-    img: "https://images.unsplash.com/photo-1543071220-6ee5bf71a54e?w=1200&q=80",
+    img: "/photos/44.jpg",
   },
   {
     title: "Electric & bio fireplaces",
     desc: "Flueless electric and bio-ethanol fireplaces framed in stone.",
-    img: "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1200&q=80",
+    img: "/photos/55.jpg",
   },
   {
     title: "Outdoor BBQ",
     desc: "Stone barbecue zones and summer kitchens built to last outdoors.",
-    img: "https://images.unsplash.com/photo-1544025162-d76694265947?w=1200&q=80",
+    img: "/photos/57.jpg",
   },
   {
     title: "Average cost & guidance",
     desc: "Transparent estimates and instructions before any work begins.",
-    img: "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=1200&q=80",
+    img: "/photos/90.jpg",
   },
 ];
 
