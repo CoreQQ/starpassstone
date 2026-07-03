@@ -49,7 +49,7 @@ export async function POST(req: Request) {
 
   async function notifyUpload() {
     await (await repo()).addLog({ type: "upload", ip, message: `Uploaded ${name} (${sizeKb} KB)` });
-    void sendTelegram(`🖼️ *File uploaded*\nName: ${esc(name)}\nSize: ${sizeKb} KB`);
+    await sendTelegram(`🖼️ *File uploaded*\nName: ${esc(name)}\nSize: ${sizeKb} KB`);
   }
 
   // Production (Vercel): store in Vercel Blob — the filesystem is read-only.

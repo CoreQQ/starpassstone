@@ -73,7 +73,7 @@ export async function POST(req: Request) {
     `🔗 Referrer: ${esc(referrer || "Direct")}\n` +
     `📄 Page: ${esc(path)}\n` +
     `${isNew ? "✨ New visitor" : "🔁 Returning visitor"}`;
-  void sendTelegram(text);
+  await sendTelegram(text);
 
   return NextResponse.json({ ok: true });
 }
