@@ -1,21 +1,49 @@
 @import "tailwindcss";
 
-:root {
-  --bg: #0a0b0d;
-  --bg-elev: #101216;
-  --panel: rgba(255, 255, 255, 0.03);
+/* ================================================================
+   Starpass Stone — design system v2 ("Obsidian & Champagne")
+   Dark-first luxury-tech identity with a warm light theme.
+   ================================================================ */
+
+:root,
+:root[data-theme="dark"] {
+  --bg: #08090c;
+  --bg-elev: #0e1015;
+  --panel: rgba(255, 255, 255, 0.035);
+  --card-grad-1: rgba(255, 255, 255, 0.055);
+  --card-grad-2: rgba(255, 255, 255, 0.012);
   --line: rgba(255, 255, 255, 0.08);
-  --line-strong: rgba(255, 255, 255, 0.16);
-  --text: #ecebe7;
-  --muted: #9a988f;
-  --faint: #6c6a64;
-  --gold: #c8a96a;
-  --gold-soft: #e3cb96;
+  --line-strong: rgba(255, 255, 255, 0.17);
+  --text: #f0efe9;
+  --muted: #a09e94;
+  --faint: #6e6c64;
+  --gold: #c9a86a;
+  --gold-soft: #e8d3a2;
+  --gold-deep: #97803f;
   --teal: #4e8d8c;
-  --radius: 18px;
+  --glow: rgba(201, 168, 106, 0.55);
+  --radius: 20px;
   --maxw: 1240px;
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-display: "Fraunces", "Times New Roman", Georgia, serif;
+}
+
+:root[data-theme="light"] {
+  --bg: #f7f5f0;
+  --bg-elev: #ffffff;
+  --panel: rgba(22, 19, 12, 0.035);
+  --card-grad-1: rgba(255, 255, 255, 0.92);
+  --card-grad-2: rgba(255, 255, 255, 0.6);
+  --line: rgba(22, 19, 12, 0.1);
+  --line-strong: rgba(22, 19, 12, 0.22);
+  --text: #1d1a14;
+  --muted: #5f5b50;
+  --faint: #8f8a7d;
+  --gold: #a2823e;
+  --gold-soft: #86682e;
+  --gold-deep: #6d5423;
+  --teal: #3c7574;
+  --glow: rgba(162, 130, 62, 0.35);
 }
 
 * {
@@ -24,7 +52,7 @@
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 88px;
+  scroll-padding-top: 96px;
 }
 
 body {
@@ -35,18 +63,20 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
+  transition: background 0.35s ease, color 0.35s ease;
 }
 
-/* Ambient background: marble grain + tech grid + glow */
+/* Ambient backdrop: aurora glows + technical grid, fixed behind everything */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   z-index: -2;
   background:
-    radial-gradient(1100px 700px at 80% -10%, rgba(200, 169, 106, 0.12), transparent 60%),
-    radial-gradient(900px 600px at -10% 20%, rgba(78, 141, 140, 0.1), transparent 55%),
-    linear-gradient(180deg, #0a0b0d 0%, #0a0b0d 100%);
+    radial-gradient(1200px 800px at 82% -12%, rgba(201, 168, 106, 0.14), transparent 58%),
+    radial-gradient(1000px 700px at -12% 24%, rgba(78, 141, 140, 0.11), transparent 55%),
+    radial-gradient(800px 900px at 50% 120%, rgba(201, 168, 106, 0.06), transparent 60%),
+    var(--bg);
 }
 
 body::after {
@@ -57,9 +87,10 @@ body::after {
   background-image:
     linear-gradient(to right, var(--line) 1px, transparent 1px),
     linear-gradient(to bottom, var(--line) 1px, transparent 1px);
-  background-size: 64px 64px;
-  mask-image: radial-gradient(ellipse 100% 80% at 50% 0%, black, transparent 75%);
-  opacity: 0.5;
+  background-size: 72px 72px;
+  mask-image: radial-gradient(ellipse 100% 70% at 50% 0%, black, transparent 72%);
+  opacity: 0.45;
+  pointer-events: none;
 }
 
 .container {
@@ -69,33 +100,33 @@ body::after {
   padding: 0 24px;
 }
 
-/* Typography helpers */
+/* ---------------- Typography ---------------- */
 .display {
   font-family: var(--font-display);
   font-weight: 300;
-  letter-spacing: -0.02em;
-  line-height: 1.04;
+  letter-spacing: -0.025em;
+  line-height: 1.02;
 }
 
 .eyebrow {
   font-size: 12px;
-  letter-spacing: 0.28em;
+  letter-spacing: 0.3em;
   text-transform: uppercase;
   color: var(--gold);
   font-weight: 600;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 .eyebrow::before {
   content: "";
-  width: 26px;
+  width: 30px;
   height: 1px;
   background: linear-gradient(90deg, var(--gold), transparent);
 }
 
 .gold-text {
-  background: linear-gradient(120deg, var(--gold-soft), var(--gold) 50%, #9c8350);
+  background: linear-gradient(115deg, var(--gold-soft) 10%, var(--gold) 55%, var(--gold-deep));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -105,36 +136,50 @@ body::after {
   color: var(--muted);
 }
 
-/* Buttons */
+/* ---------------- Buttons ---------------- */
 .btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 9px;
-  padding: 13px 24px;
+  padding: 14px 26px;
   border-radius: 999px;
   font-weight: 600;
   font-size: 14.5px;
   letter-spacing: 0.01em;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease,
-    border-color 0.25s ease, color 0.25s ease;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s ease,
+    background 0.28s ease, border-color 0.28s ease, color 0.28s ease;
   text-decoration: none;
+  overflow: hidden;
 }
 .btn-primary {
-  background: linear-gradient(120deg, var(--gold-soft), var(--gold));
-  color: #1a1305;
-  box-shadow: 0 10px 30px -10px rgba(200, 169, 106, 0.6);
+  background: linear-gradient(115deg, var(--gold-soft), var(--gold) 60%, var(--gold-deep));
+  color: #191204;
+  box-shadow: 0 12px 34px -12px var(--glow);
+}
+.btn-primary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.5) 50%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform 0.6s ease;
 }
 .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 18px 40px -12px rgba(200, 169, 106, 0.7);
+  transform: translateY(-2px) scale(1.015);
+  box-shadow: 0 20px 46px -14px var(--glow);
+}
+.btn-primary:hover::after {
+  transform: translateX(120%);
 }
 .btn-ghost {
   border-color: var(--line-strong);
   color: var(--text);
   background: var(--panel);
+  backdrop-filter: blur(8px);
 }
 .btn-ghost:hover {
   border-color: var(--gold);
@@ -142,38 +187,67 @@ body::after {
   transform: translateY(-2px);
 }
 
-/* Sections */
+/* ---------------- Layout rhythm ---------------- */
 .section {
   position: relative;
-  padding: 110px 0;
+  padding: 128px 0;
 }
 .section-head {
-  max-width: 720px;
-  margin-bottom: 56px;
+  max-width: 760px;
+  margin-bottom: 64px;
 }
 .section-title {
-  font-size: clamp(30px, 4.4vw, 54px);
+  font-size: clamp(32px, 4.6vw, 58px);
   margin: 18px 0 0;
 }
 .section-sub {
-  margin-top: 18px;
+  margin-top: 20px;
   font-size: 17px;
-  line-height: 1.7;
+  line-height: 1.75;
   color: var(--muted);
 }
 
-/* Glass card */
+/* ---------------- Glass cards ---------------- */
 .card {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015));
+  position: relative;
+  background: linear-gradient(180deg, var(--card-grad-1), var(--card-grad-2));
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  backdrop-filter: blur(6px);
-  transition: transform 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+  backdrop-filter: blur(10px);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s ease,
+    box-shadow 0.4s ease;
+}
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.14), transparent 40%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
 .card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-5px);
   border-color: var(--line-strong);
-  box-shadow: 0 24px 60px -30px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 30px 70px -32px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(201, 168, 106, 0.06);
+}
+
+/* Hover shine sweep — add .card-shine alongside .card */
+.card-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.07) 50%, transparent 65%);
+  transform: translateX(-130%);
+  transition: transform 0.8s ease;
+  pointer-events: none;
+}
+.card-shine:hover::after {
+  transform: translateX(130%);
 }
 
 .hairline {
@@ -181,51 +255,49 @@ body::after {
   background: linear-gradient(90deg, transparent, var(--line-strong), transparent);
 }
 
-/* Reveal-on-scroll */
-.reveal {
-  opacity: 0;
-  transform: translateY(26px);
-  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+/* ---------------- Announcement banner ---------------- */
+.banner-bar {
+  position: relative;
+  z-index: 60;
+  background: linear-gradient(90deg, rgba(201, 168, 106, 0.16), rgba(78, 141, 140, 0.12));
+  border-bottom: 1px solid var(--line);
+  font-size: 13.5px;
+  text-align: center;
+  padding: 9px 40px;
+  color: var(--text);
+  backdrop-filter: blur(8px);
 }
-.reveal.in {
-  opacity: 1;
-  transform: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  * {
-    scroll-behavior: auto !important;
-  }
-  .reveal {
-    opacity: 1;
-    transform: none;
-    transition: none;
-  }
+.banner-bar a {
+  color: var(--gold-soft);
+  text-decoration: none;
+  font-weight: 600;
 }
 
-/* Marquee */
+/* ---------------- Marquee ---------------- */
 .marquee {
   overflow: hidden;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.015);
+  background: var(--panel);
 }
 .marquee__track {
   display: flex;
-  gap: 56px;
+  gap: 60px;
   width: max-content;
-  padding: 18px 28px;
-  animation: scroll-x 28s linear infinite;
+  padding: 20px 30px;
+  animation: scroll-x 30s linear infinite;
+}
+.marquee:hover .marquee__track {
+  animation-play-state: paused;
 }
 .marquee__item {
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: 23px;
   color: var(--muted);
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
-  gap: 56px;
+  gap: 60px;
 }
 .marquee__item::after {
   content: "✦";
@@ -238,17 +310,17 @@ body::after {
   }
 }
 
-/* Inputs */
+/* ---------------- Inputs ---------------- */
 .field {
   width: 100%;
-  padding: 14px 16px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--line);
+  padding: 14px 17px;
+  border-radius: 13px;
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
   color: var(--text);
   font-size: 15px;
   font-family: inherit;
-  transition: border-color 0.2s ease, background 0.2s ease;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 .field::placeholder {
   color: var(--faint);
@@ -256,5 +328,91 @@ body::after {
 .field:focus {
   outline: none;
   border-color: var(--gold);
-  background: rgba(200, 169, 106, 0.06);
+  background: rgba(201, 168, 106, 0.06);
+  box-shadow: 0 0 0 3px rgba(201, 168, 106, 0.12);
+}
+
+/* ---------------- FAQ accordion ---------------- */
+.faq-item {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: linear-gradient(180deg, var(--card-grad-1), var(--card-grad-2));
+  backdrop-filter: blur(8px);
+  transition: border-color 0.3s ease;
+  overflow: hidden;
+}
+.faq-item[open] {
+  border-color: var(--line-strong);
+}
+.faq-item summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 20px 24px;
+  font-size: 16.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  transition: color 0.2s ease;
+}
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+.faq-item summary:hover {
+  color: var(--gold-soft);
+}
+.faq-item summary::after {
+  content: "+";
+  font-family: var(--font-display);
+  font-size: 24px;
+  color: var(--gold);
+  line-height: 1;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  flex: 0 0 auto;
+}
+.faq-item[open] summary::after {
+  transform: rotate(45deg);
+}
+.faq-item p {
+  margin: 0;
+  padding: 0 24px 22px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+/* ---------------- Hero aurora ---------------- */
+.hero-aurora {
+  position: absolute;
+  inset: -20% -10%;
+  pointer-events: none;
+  background:
+    radial-gradient(42% 38% at 72% 30%, rgba(201, 168, 106, 0.22), transparent 65%),
+    radial-gradient(34% 34% at 24% 68%, rgba(78, 141, 140, 0.16), transparent 65%),
+    radial-gradient(26% 26% at 58% 78%, rgba(201, 168, 106, 0.1), transparent 60%);
+  filter: blur(10px);
+  animation: aurora 16s ease-in-out infinite alternate;
+}
+@keyframes aurora {
+  from {
+    transform: translate3d(-2%, -1%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(2%, 2%, 0) scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+  }
+  .marquee__track,
+  .hero-aurora {
+    animation: none !important;
+  }
+  .btn,
+  .card {
+    transition: none !important;
+  }
 }

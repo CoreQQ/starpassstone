@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { company, nav } from "@/lib/content";
+import ThemeToggle from "./ThemeToggle";
+import Search from "./Search";
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
@@ -17,14 +20,12 @@ export default function Header() {
   return (
     <header
       style={{
-        position: "fixed",
+        position: "sticky",
         top: 0,
-        left: 0,
-        right: 0,
         zIndex: 50,
         transition: "all .3s ease",
-        background: scrolled ? "rgba(10,11,13,0.72)" : "transparent",
-        backdropFilter: scrolled ? "blur(14px)" : "none",
+        background: scrolled ? "color-mix(in srgb, var(--bg) 78%, transparent)" : "transparent",
+        backdropFilter: scrolled ? "blur(16px)" : "none",
         borderBottom: scrolled
           ? "1px solid var(--line)"
           : "1px solid transparent",
@@ -96,9 +97,24 @@ export default function Header() {
               {n.label}
             </a>
           ))}
+          <Link
+            href="/account"
+            style={{
+              color: "var(--muted)",
+              textDecoration: "none",
+              fontSize: 14.5,
+              fontWeight: 500,
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--gold-soft)")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--muted)")}
+          >
+            Account
+          </Link>
         </nav>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Search />
+          <ThemeToggle />
           <a
             href={`https://wa.me/${company.whatsapp}`}
             target="_blank"
@@ -156,6 +172,18 @@ export default function Header() {
                 {n.label}
               </a>
             ))}
+            <Link
+              href="/account"
+              onClick={() => setOpen(false)}
+              style={{
+                color: "var(--text)",
+                textDecoration: "none",
+                padding: "12px 4px",
+                fontSize: 16,
+              }}
+            >
+              Account
+            </Link>
           </div>
         </div>
       )}

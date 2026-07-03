@@ -29,6 +29,7 @@ export const nav = [
   { id: "hamam", label: "Hamams" },
   { id: "sauna", label: "Saunas" },
   { id: "about", label: "About" },
+  { id: "faq", label: "FAQ" },
   { id: "contact", label: "Contact" },
 ];
 
@@ -39,6 +40,66 @@ export const categories = [
   "Table tops",
   "Bathrooms",
   "Stone",
+];
+
+export const advantages = [
+  {
+    icon: "◆",
+    title: "Since 1998",
+    body: "More than 25 years of craft — a reliable partner and a high-level professional in natural stone.",
+  },
+  {
+    icon: "⟐",
+    title: "Turnkey, A to Z",
+    body: "One team from the first measurement through design, production and installation to lifelong maintenance.",
+  },
+  {
+    icon: "❖",
+    title: "100% natural stone",
+    body: "Slabs selected at quarries worldwide — marble, granite, onyx and quartzite matched to your space.",
+  },
+  {
+    icon: "✦",
+    title: "Author's supervision",
+    body: "Every design project is delivered with the author's ongoing support at all stages of the order.",
+  },
+  {
+    icon: "◈",
+    title: "Personal guidance",
+    body: "Petro Rudenko, your personal guide, helps you choose the right stone for your project.",
+  },
+  {
+    icon: "△",
+    title: "Transparent costing",
+    body: "Clear average-cost estimates and instructions before any work begins — no surprises.",
+  },
+];
+
+export const faq = [
+  {
+    q: "What products do you make from natural stone?",
+    a: "Fireplaces (classic, electric and bio), hammams, saunas, table tops and kitchen worktops, bathrooms, staircases, marble columns and outdoor BBQ zones — any style and degree of complexity.",
+  },
+  {
+    q: "Which stones do you work with?",
+    a: "A curated palette from quarries worldwide: Calacatta marble, Sadolit Blue quartzite, Ukrainian Labradorite granite, Nero Marquina marble and translucent Onyx, among others.",
+  },
+  {
+    q: "Do you build hammams for private homes?",
+    a: "Yes — we build Turkish baths for both private and commercial use, working closely with the client and using premium materials and advanced equipment (EOS, Sawo steam generators).",
+  },
+  {
+    q: "Is a hammam suitable if a sauna doesn't suit me?",
+    a: "Often yes. The hammam has no high temperatures, so it has almost no contraindications — it benefits blood vessels, skin and the respiratory system while letting you fully relax.",
+  },
+  {
+    q: "How much will my project cost?",
+    a: "We provide transparent average-cost estimates and clear guidance before any work begins. Send us your idea and we'll prepare a costing for your exact project.",
+  },
+  {
+    q: "Do you handle the whole project?",
+    a: "Yes — Starpass Stone provides the complete range of services, from measurements to turnkey works and ongoing maintenance, with the author's supervision throughout.",
+  },
 ];
 
 export const design = {
@@ -83,46 +144,48 @@ export const stones = [
   },
 ];
 
+// Product photos are the original starpassstone.net portfolio images,
+// mirrored into /public/photos (see README "Photos" section).
 export const products = [
   {
     title: "Marble columns",
     desc: "Hand-finished columns and architectural elements in solid natural stone.",
-    img: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1200&q=80",
+    img: "/photos/26.jpg",
   },
   {
     title: "Stone bathrooms",
     desc: "Full bathroom suites — vanities, basins, walls and floors in matched stone.",
-    img: "https://images.unsplash.com/photo-1620626011761-996317b8d101?w=1200&q=80",
+    img: "/photos/31.jpg",
   },
   {
     title: "Staircases",
     desc: "Solid and cladded stone stairs engineered for a lifetime of use.",
-    img: "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=1200&q=80",
+    img: "/photos/34.jpg",
   },
   {
     title: "Table tops",
     desc: "Kitchen worktops and tables cut from a single book-matched slab.",
-    img: "https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=1200&q=80",
+    img: "/photos/40.jpg",
   },
   {
     title: "Fireplaces",
     desc: "Bespoke mantels and surrounds — classic to contemporary.",
-    img: "https://images.unsplash.com/photo-1543071220-6ee5bf71a54e?w=1200&q=80",
+    img: "/photos/44.jpg",
   },
   {
     title: "Electric & bio fireplaces",
     desc: "Flueless electric and bio-ethanol fireplaces framed in stone.",
-    img: "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1200&q=80",
+    img: "/photos/55.jpg",
   },
   {
     title: "Outdoor BBQ",
     desc: "Stone barbecue zones and summer kitchens built to last outdoors.",
-    img: "https://images.unsplash.com/photo-1544025162-d76694265947?w=1200&q=80",
+    img: "/photos/57.jpg",
   },
   {
     title: "Average cost & guidance",
     desc: "Transparent estimates and instructions before any work begins.",
-    img: "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=1200&q=80",
+    img: "/photos/90.jpg",
   },
 ];
 

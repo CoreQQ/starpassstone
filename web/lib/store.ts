@@ -36,36 +36,29 @@ function item(title: string, img: string, desc?: string): Item {
 }
 
 /** Default content used to seed the store on first run. */
+export function seedContent(): SiteContent {
+  return seed();
+}
+
 function seed(): SiteContent {
   return {
     products: defaultProducts.map((p) => item(p.title, p.img, p.desc)),
+    // Original starpassstone.net portfolio photos, mirrored into /public/photos.
     hamamGallery: [
-      item(
-        "Mosaic in hammam",
-        "https://images.unsplash.com/photo-1600334129128-685c5582fd35?w=1200&q=80"
-      ),
-      item(
-        "Hammam in mosaic with ergonomic benches",
-        "https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=1200&q=80"
-      ),
-      item(
-        "Hammam in marble",
-        "https://images.unsplash.com/photo-1604709177225-055f99402ea3?w=1200&q=80"
-      ),
+      item("Mosaic in hammam", "/photos/61.jpg"),
+      item("Hammam in mosaic with ergonomic benches", "/photos/62.jpg"),
+      item("Hammam in marble", "/photos/63.jpg"),
+      item("Hammam interior", "/photos/64.jpg"),
+      item("Hammam detail", "/photos/65.jpg"),
+      item("Hammam benches", "/photos/66.jpg"),
     ],
     saunaGallery: [
-      item(
-        "Finnish steam room",
-        "https://images.unsplash.com/photo-1554344728-77cf90d9ed26?w=1200&q=80"
-      ),
-      item(
-        "Salt & bench lighting",
-        "https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=1200&q=80"
-      ),
-      item(
-        "Senior rooms",
-        "https://images.unsplash.com/photo-1610552050890-fe99536c2615?w=1200&q=80"
-      ),
+      item("Finnish steam room", "/photos/72.jpg"),
+      item("Salt & bench lighting", "/photos/73.jpg"),
+      item("Senior rooms", "/photos/74.jpg"),
+      item("Humpback benches", "/photos/75.jpg"),
+      item("Sauna interior", "/photos/76.jpg"),
+      item("Sauna lighting", "/photos/77.jpg"),
     ],
   };
 }
@@ -130,8 +123,8 @@ export async function readContent(): Promise<SiteContent> {
   }
 }
 
-/** Validates and normalises an incoming content payload before saving. */
-export async function writeContent(input: unknown): Promise<SiteContent> {
+/** Validates and normalises an incoming content payload (pure, no I/O). */
+export function sanitizeContent(input: unknown): SiteContent {
   const data = input as Partial<SiteContent>;
   const clean = (arr: unknown, withDesc: boolean): Item[] =>
     Array.isArray(arr)
@@ -149,11 +142,16 @@ export async function writeContent(input: unknown): Promise<SiteContent> {
           })
       : [];
 
-  const next: SiteContent = {
+  return {
     products: clean(data.products, true),
     hamamGallery: clean(data.hamamGallery, false),
     saunaGallery: clean(data.saunaGallery, false),
   };
+}
+
+/** Validates and persists an incoming content payload. */
+export async function writeContent(input: unknown): Promise<SiteContent> {
+  const next = sanitizeContent(input);
 
   if (useBlob) {
     await blobWrite(next);

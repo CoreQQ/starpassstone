@@ -1,8 +1,10 @@
 import Image from "next/image";
-import Reveal from "./Reveal";
+import { FadeUp, Stagger, FadeItem } from "./motion";
 import ContactForm from "./ContactForm";
 import {
   categories,
+  advantages,
+  faq,
   design,
   stones,
   hamam,
@@ -10,7 +12,10 @@ import {
   about,
   company,
 } from "@/lib/content";
-import type { Item } from "@/lib/store";
+import type { Item, SiteContent } from "@/lib/store";
+import type { NewsPost } from "@/lib/repo";
+
+export type { SiteContent };
 
 /* ---------- Marquee ---------- */
 export function Marquee() {
@@ -28,6 +33,63 @@ export function Marquee() {
   );
 }
 
+/* ---------- Advantages ---------- */
+export function Advantages() {
+  return (
+    <section className="section" style={{ paddingBottom: 0 }}>
+      <div className="container">
+        <FadeUp className="section-head">
+          <span className="eyebrow">Why Starpass Stone</span>
+          <h2 className="display section-title">Craft you can build on</h2>
+        </FadeUp>
+        <Stagger
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))",
+            gap: 18,
+          }}
+        >
+          {advantages.map((a) => (
+            <FadeItem key={a.title}>
+              <div className="card card-shine" style={{ padding: "28px 26px", height: "100%" }}>
+                <div
+                  aria-hidden
+                  style={{
+                    width: 46,
+                    height: 46,
+                    borderRadius: 14,
+                    display: "grid",
+                    placeItems: "center",
+                    fontSize: 20,
+                    color: "var(--gold-soft)",
+                    background: "linear-gradient(160deg, rgba(201,168,106,0.16), rgba(201,168,106,0.04))",
+                    border: "1px solid var(--line)",
+                  }}
+                >
+                  {a.icon}
+                </div>
+                <h3
+                  style={{
+                    margin: "18px 0 0",
+                    fontFamily: "var(--font-display)",
+                    fontSize: 21,
+                    fontWeight: 400,
+                  }}
+                >
+                  {a.title}
+                </h3>
+                <p className="muted" style={{ margin: "10px 0 0", fontSize: 14.5, lineHeight: 1.65 }}>
+                  {a.body}
+                </p>
+              </div>
+            </FadeItem>
+          ))}
+        </Stagger>
+      </div>
+    </section>
+  );
+}
+
 /* ---------- Design / services ---------- */
 export function DesignSection() {
   return (
@@ -42,39 +104,30 @@ export function DesignSection() {
             alignItems: "center",
           }}
         >
-          <Reveal>
+          <FadeUp>
             <span className="eyebrow">What we do</span>
             <h2 className="display section-title" style={{ marginTop: 16 }}>
               {design.title}
             </h2>
-          </Reveal>
-          <div style={{ display: "grid", gap: 18 }}>
+          </FadeUp>
+          <Stagger style={{ display: "grid", gap: 18 }}>
             {design.points.map((p, i) => (
-              <Reveal key={i} delay={i * 90}>
+              <FadeItem key={i}>
                 <div
                   className="card"
-                  style={{
-                    padding: "22px 24px",
-                    display: "flex",
-                    gap: 18,
-                    alignItems: "flex-start",
-                  }}
+                  style={{ padding: "24px 26px", display: "flex", gap: 18, alignItems: "flex-start" }}
                 >
                   <span
                     className="gold-text"
-                    style={{
-                      fontFamily: "var(--font-display)",
-                      fontSize: 24,
-                      minWidth: 38,
-                    }}
+                    style={{ fontFamily: "var(--font-display)", fontSize: 26, minWidth: 40 }}
                   >
                     0{i + 1}
                   </span>
-                  <p style={{ margin: 0, fontSize: 16.5, lineHeight: 1.6 }}>{p}</p>
+                  <p style={{ margin: 0, fontSize: 16.5, lineHeight: 1.65 }}>{p}</p>
                 </div>
-              </Reveal>
+              </FadeItem>
             ))}
-          </div>
+          </Stagger>
         </div>
       </div>
       <style>{`@media (max-width:880px){.design-grid{grid-template-columns:1fr !important;gap:32px !important}}`}</style>
@@ -87,24 +140,24 @@ export function Stones() {
   return (
     <section className="section" style={{ paddingTop: 0 }}>
       <div className="container">
-        <Reveal className="section-head">
+        <FadeUp className="section-head">
           <span className="eyebrow">The palette</span>
           <h2 className="display section-title">Stones we work with</h2>
           <p className="section-sub">
             A curated selection from quarries worldwide — each slab chosen for its
             character, then matched to your space.
           </p>
-        </Reveal>
-        <div
+        </FadeUp>
+        <Stagger
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))",
             gap: 16,
           }}
         >
-          {stones.map((s, i) => (
-            <Reveal key={s.name} delay={i * 70}>
-              <div className="card" style={{ overflow: "hidden" }}>
+          {stones.map((s) => (
+            <FadeItem key={s.name}>
+              <div className="card card-shine" style={{ overflow: "hidden" }}>
                 <div
                   style={{
                     height: 150,
@@ -112,41 +165,21 @@ export function Stones() {
                     position: "relative",
                   }}
                 >
-                  <svg
-                    style={{ position: "absolute", inset: 0, opacity: 0.35 }}
-                    width="100%"
-                    height="100%"
-                  >
-                    <path
-                      d="M0 90 Q 60 40 140 80 T 320 70"
-                      stroke={s.accent}
-                      strokeWidth="1.2"
-                      fill="none"
-                    />
-                    <path
-                      d="M0 120 Q 90 100 180 130 T 340 110"
-                      stroke={s.accent}
-                      strokeWidth="0.8"
-                      fill="none"
-                      opacity="0.6"
-                    />
+                  <svg style={{ position: "absolute", inset: 0, opacity: 0.35 }} width="100%" height="100%">
+                    <path d="M0 90 Q 60 40 140 80 T 320 70" stroke={s.accent} strokeWidth="1.2" fill="none" />
+                    <path d="M0 120 Q 90 100 180 130 T 340 110" stroke={s.accent} strokeWidth="0.8" fill="none" opacity="0.6" />
                   </svg>
                 </div>
                 <div style={{ padding: "16px 18px" }}>
-                  <div style={{ fontFamily: "var(--font-display)", fontSize: 19 }}>
-                    {s.name}
-                  </div>
-                  <div
-                    className="muted"
-                    style={{ fontSize: 12.5, marginTop: 5, lineHeight: 1.5 }}
-                  >
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 19 }}>{s.name}</div>
+                  <div className="muted" style={{ fontSize: 12.5, marginTop: 5, lineHeight: 1.5 }}>
                     {s.note}
                   </div>
                 </div>
               </div>
-            </Reveal>
+            </FadeItem>
           ))}
-        </div>
+        </Stagger>
       </div>
     </section>
   );
@@ -157,34 +190,25 @@ export function Products({ items }: { items: Item[] }) {
   return (
     <section id="products" className="section" style={{ paddingTop: 0 }}>
       <div className="container">
-        <Reveal className="section-head">
+        <FadeUp className="section-head">
           <span className="eyebrow">Products & services</span>
           <h2 className="display section-title">Everything, crafted in stone</h2>
           <p className="section-sub">
             Natural-stone products of any style and complexity — designed,
             produced and installed by one team.
           </p>
-        </Reveal>
-        <div
+        </FadeUp>
+        <Stagger
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))",
             gap: 18,
           }}
         >
-          {items.map((p, i) => (
-            <Reveal key={p.id} delay={(i % 4) * 70}>
-              <article
-                className="card"
-                style={{ overflow: "hidden", height: "100%" }}
-              >
-                <div
-                  style={{
-                    position: "relative",
-                    height: 190,
-                    overflow: "hidden",
-                  }}
-                >
+          {items.map((p) => (
+            <FadeItem key={p.id}>
+              <article className="card card-shine" style={{ overflow: "hidden", height: "100%" }}>
+                <div style={{ position: "relative", height: 190, overflow: "hidden" }}>
                   <Image
                     src={p.img}
                     alt={p.title}
@@ -196,8 +220,7 @@ export function Products({ items }: { items: Item[] }) {
                     style={{
                       position: "absolute",
                       inset: 0,
-                      background:
-                        "linear-gradient(180deg, transparent 40%, rgba(10,11,13,0.85))",
+                      background: "linear-gradient(180deg, transparent 40%, rgba(8,9,12,0.85))",
                     }}
                   />
                 </div>
@@ -212,17 +235,14 @@ export function Products({ items }: { items: Item[] }) {
                   >
                     {p.title}
                   </h3>
-                  <p
-                    className="muted"
-                    style={{ margin: "9px 0 0", fontSize: 14, lineHeight: 1.55 }}
-                  >
+                  <p className="muted" style={{ margin: "9px 0 0", fontSize: 14, lineHeight: 1.55 }}>
                     {p.desc}
                   </p>
                 </div>
               </article>
-            </Reveal>
+            </FadeItem>
           ))}
-        </div>
+        </Stagger>
       </div>
     </section>
   );
@@ -235,44 +255,40 @@ export function Hamam({ gallery }: { gallery: Item[] }) {
       id="hamam"
       className="section"
       style={{
-        background:
-          "linear-gradient(180deg, transparent, rgba(78,141,140,0.05), transparent)",
+        background: "linear-gradient(180deg, transparent, rgba(78,141,140,0.05), transparent)",
       }}
     >
       <div className="container">
-        <Reveal className="section-head">
+        <FadeUp className="section-head">
           <span className="eyebrow">{hamam.subheading}</span>
           <h2 className="display section-title">{hamam.heading}</h2>
-        </Reveal>
+        </FadeUp>
 
-        <div
-          className="two-col"
-          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}
-        >
-          <Reveal>
-            <div className="card" style={{ padding: 28, height: "100%" }}>
+        <div className="two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+          <FadeUp>
+            <div className="card" style={{ padding: 30, height: "100%" }}>
               <h3 style={cardH}>{hamam.health.title}</h3>
               <p style={cardP}>{hamam.health.body}</p>
             </div>
-          </Reveal>
-          <Reveal delay={90}>
-            <div className="card" style={{ padding: 28, height: "100%" }}>
+          </FadeUp>
+          <FadeUp delay={0.1}>
+            <div className="card" style={{ padding: 30, height: "100%" }}>
               <h3 style={cardH}>{hamam.construction.title}</h3>
               <p style={cardP}>{hamam.construction.body}</p>
             </div>
-          </Reveal>
+          </FadeUp>
         </div>
 
-        <Reveal>
-          <div style={{ marginTop: 40 }}>
+        <FadeUp>
+          <div style={{ marginTop: 44 }}>
             <span className="eyebrow">Portfolio</span>
           </div>
-        </Reveal>
+        </FadeUp>
         <Gallery items={gallery} />
 
         <div style={{ marginTop: 18 }}>
-          <Reveal>
-            <div className="card" style={{ padding: 28 }}>
+          <FadeUp>
+            <div className="card" style={{ padding: 30 }}>
               <span className="eyebrow">Equipment</span>
               <ul style={listStyle}>
                 {hamam.equipment.map((x) => (
@@ -282,7 +298,7 @@ export function Hamam({ gallery }: { gallery: Item[] }) {
                 ))}
               </ul>
             </div>
-          </Reveal>
+          </FadeUp>
         </div>
       </div>
       <style>{`@media(max-width:820px){.two-col{grid-template-columns:1fr !important}}`}</style>
@@ -294,7 +310,7 @@ export function Hamam({ gallery }: { gallery: Item[] }) {
 function Gallery({ items }: { items: Item[] }) {
   if (!items.length) return null;
   return (
-    <div
+    <Stagger
       style={{
         marginTop: 16,
         display: "grid",
@@ -302,16 +318,11 @@ function Gallery({ items }: { items: Item[] }) {
         gap: 16,
       }}
     >
-      {items.map((it, i) => (
-        <Reveal key={it.id} delay={(i % 4) * 70}>
+      {items.map((it) => (
+        <FadeItem key={it.id}>
           <figure
-            className="card"
-            style={{
-              margin: 0,
-              overflow: "hidden",
-              position: "relative",
-              aspectRatio: "4 / 3",
-            }}
+            className="card card-shine"
+            style={{ margin: 0, overflow: "hidden", position: "relative", aspectRatio: "4 / 3" }}
           >
             <Image
               src={it.img}
@@ -324,8 +335,7 @@ function Gallery({ items }: { items: Item[] }) {
               style={{
                 position: "absolute",
                 inset: 0,
-                background:
-                  "linear-gradient(180deg, transparent 45%, rgba(10,11,13,0.9))",
+                background: "linear-gradient(180deg, transparent 45%, rgba(8,9,12,0.9))",
               }}
             />
             {it.title && (
@@ -337,15 +347,16 @@ function Gallery({ items }: { items: Item[] }) {
                   right: 16,
                   fontFamily: "var(--font-display)",
                   fontSize: 17,
+                  color: "#f0efe9",
                 }}
               >
                 {it.title}
               </figcaption>
             )}
           </figure>
-        </Reveal>
+        </FadeItem>
       ))}
-    </div>
+    </Stagger>
   );
 }
 
@@ -354,7 +365,7 @@ export function Sauna({ gallery }: { gallery: Item[] }) {
   return (
     <section id="sauna" className="section" style={{ paddingTop: 0 }}>
       <div className="container">
-        <Reveal className="section-head">
+        <FadeUp className="section-head">
           <span className="eyebrow">{sauna.subheading}</span>
           <h2 className="display section-title" style={{ marginTop: 16 }}>
             {sauna.heading}
@@ -376,14 +387,76 @@ export function Sauna({ gallery }: { gallery: Item[] }) {
               </span>
             ))}
           </div>
-        </Reveal>
+        </FadeUp>
 
-        <Reveal>
+        <FadeUp>
           <div style={{ marginTop: 8 }}>
             <span className="eyebrow">Portfolio</span>
           </div>
-        </Reveal>
+        </FadeUp>
         <Gallery items={gallery} />
+      </div>
+    </section>
+  );
+}
+
+/* ---------- News ---------- */
+export function News({ posts }: { posts: NewsPost[] }) {
+  if (!posts.length) return null;
+  return (
+    <section id="news" className="section" style={{ paddingTop: 0 }}>
+      <div className="container">
+        <FadeUp className="section-head">
+          <span className="eyebrow">News</span>
+          <h2 className="display section-title">Latest from the workshop</h2>
+        </FadeUp>
+        <Stagger
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))",
+            gap: 18,
+          }}
+        >
+          {posts.slice(0, 6).map((n) => (
+            <FadeItem key={n.id}>
+              <article className="card card-shine" style={{ overflow: "hidden", height: "100%" }}>
+                {n.img && (
+                  <div style={{ position: "relative", height: 170 }}>
+                    <Image
+                      src={n.img}
+                      alt={n.title}
+                      fill
+                      sizes="(max-width:600px) 100vw, 340px"
+                      style={{ objectFit: "cover" }}
+                    />
+                  </div>
+                )}
+                <div style={{ padding: "18px 20px 22px" }}>
+                  <time className="muted" style={{ fontSize: 12.5, letterSpacing: "0.08em" }}>
+                    {new Date(n.createdAt).toLocaleDateString("en-GB", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </time>
+                  <h3
+                    style={{
+                      margin: "8px 0 0",
+                      fontFamily: "var(--font-display)",
+                      fontSize: 21,
+                      fontWeight: 400,
+                    }}
+                  >
+                    {n.title}
+                  </h3>
+                  <p className="muted" style={{ margin: "9px 0 0", fontSize: 14, lineHeight: 1.6 }}>
+                    {n.body.length > 180 ? `${n.body.slice(0, 180)}…` : n.body}
+                  </p>
+                </div>
+              </article>
+            </FadeItem>
+          ))}
+        </Stagger>
       </div>
     </section>
   );
@@ -403,7 +476,7 @@ export function About() {
             alignItems: "center",
           }}
         >
-          <Reveal>
+          <FadeUp>
             <span className="eyebrow">About the company</span>
             <h2 className="display section-title" style={{ marginTop: 16 }}>
               {about.title}
@@ -411,24 +484,17 @@ export function About() {
             <p className="section-sub">{about.body}</p>
             <div
               className="card"
-              style={{
-                marginTop: 28,
-                padding: "18px 22px",
-                display: "flex",
-                alignItems: "center",
-                gap: 16,
-              }}
+              style={{ marginTop: 28, padding: "18px 22px", display: "flex", alignItems: "center", gap: 16 }}
             >
               <div
                 style={{
                   width: 46,
                   height: 46,
                   borderRadius: "50%",
-                  background:
-                    "linear-gradient(120deg, var(--gold-soft), var(--gold))",
+                  background: "linear-gradient(120deg, var(--gold-soft), var(--gold))",
                   display: "grid",
                   placeItems: "center",
-                  color: "#1a1305",
+                  color: "#191204",
                   fontWeight: 700,
                 }}
               >
@@ -450,29 +516,15 @@ export function About() {
                 WhatsApp
               </a>
             </div>
-          </Reveal>
+          </FadeUp>
 
-          <Reveal delay={90}>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 16,
-              }}
-            >
-              {about.stats.map((s) => (
-                <div
-                  key={s.label}
-                  className="card"
-                  style={{ padding: "30px 24px" }}
-                >
+          <Stagger style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            {about.stats.map((s) => (
+              <FadeItem key={s.label}>
+                <div className="card" style={{ padding: "32px 26px", height: "100%" }}>
                   <div
                     className="gold-text"
-                    style={{
-                      fontFamily: "var(--font-display)",
-                      fontSize: 40,
-                      lineHeight: 1,
-                    }}
+                    style={{ fontFamily: "var(--font-display)", fontSize: 42, lineHeight: 1 }}
                   >
                     {s.value}
                   </div>
@@ -480,10 +532,34 @@ export function About() {
                     {s.label}
                   </div>
                 </div>
-              ))}
-            </div>
-          </Reveal>
+              </FadeItem>
+            ))}
+          </Stagger>
         </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- FAQ ---------- */
+export function Faq() {
+  return (
+    <section id="faq" className="section" style={{ paddingTop: 0 }}>
+      <div className="container" style={{ maxWidth: 860 }}>
+        <FadeUp className="section-head">
+          <span className="eyebrow">FAQ</span>
+          <h2 className="display section-title">Questions, answered</h2>
+        </FadeUp>
+        <Stagger style={{ display: "grid", gap: 12 }}>
+          {faq.map((f) => (
+            <FadeItem key={f.q}>
+              <details className="faq-item">
+                <summary>{f.q}</summary>
+                <p>{f.a}</p>
+              </details>
+            </FadeItem>
+          ))}
+        </Stagger>
       </div>
     </section>
   );
@@ -494,69 +570,62 @@ export function Contact() {
   return (
     <section id="contact" className="section" style={{ paddingTop: 0 }}>
       <div className="container">
-        <div
-          className="card contact-grid"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1.1fr 0.9fr",
-            gap: 0,
-            overflow: "hidden",
-          }}
-        >
-          <div style={{ padding: "clamp(28px,4vw,52px)" }}>
-            <span className="eyebrow">Get in touch</span>
-            <h2
-              className="display"
-              style={{ fontSize: "clamp(28px,3.6vw,44px)", margin: "16px 0 0" }}
-            >
-              Let&apos;s plan your project
-            </h2>
-            <p className="muted" style={{ marginTop: 16, fontSize: 16, lineHeight: 1.65, maxWidth: 460 }}>
-              From measurements to turnkey installation and maintenance. Leave
-              your number and {company.guide.name} will guide you through choosing
-              your stone.
-            </p>
-
-            <div style={{ marginTop: 30, display: "grid", gap: 16 }}>
-              <Info label="Address">
-                <a href={company.mapsUrl} target="_blank" rel="noreferrer" style={linkStyle}>
-                  {company.address}
-                </a>
-              </Info>
-              <Info label="Phone">
-                <div style={{ display: "grid", gap: 4 }}>
-                  {company.phones.map((p) => (
-                    <a key={p.value} href={p.href} style={linkStyle} target="_blank" rel="noreferrer">
-                      {p.value}{" "}
-                      <span className="muted" style={{ fontSize: 12 }}>
-                        · {p.label}
-                      </span>
-                    </a>
-                  ))}
-                </div>
-              </Info>
-              <Info label="E-mail">
-                <a href={`mailto:${company.email}`} style={linkStyle}>
-                  {company.email}
-                </a>
-              </Info>
-            </div>
-          </div>
-
+        <FadeUp>
           <div
-            style={{
-              padding: "clamp(28px,4vw,52px)",
-              background:
-                "linear-gradient(180deg, rgba(200,169,106,0.08), rgba(255,255,255,0.02))",
-              borderLeft: "1px solid var(--line)",
-            }}
+            className="card contact-grid"
+            style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: 0, overflow: "hidden" }}
           >
-            <div style={{ fontFamily: "var(--font-display)", fontSize: 22, marginBottom: 16 }}>
-              Submit a request
+            <div style={{ padding: "clamp(28px,4vw,54px)" }}>
+              <span className="eyebrow">Get in touch</span>
+              <h2 className="display" style={{ fontSize: "clamp(28px,3.6vw,44px)", margin: "16px 0 0" }}>
+                Let&apos;s plan your project
+              </h2>
+              <p className="muted" style={{ marginTop: 16, fontSize: 16, lineHeight: 1.65, maxWidth: 460 }}>
+                From measurements to turnkey installation and maintenance. Leave
+                your number and {company.guide.name} will guide you through choosing
+                your stone.
+              </p>
+
+              <div style={{ marginTop: 30, display: "grid", gap: 16 }}>
+                <Info label="Address">
+                  <a href={company.mapsUrl} target="_blank" rel="noreferrer" style={linkStyle}>
+                    {company.address}
+                  </a>
+                </Info>
+                <Info label="Phone">
+                  <div style={{ display: "grid", gap: 4 }}>
+                    {company.phones.map((p) => (
+                      <a key={p.value} href={p.href} style={linkStyle} target="_blank" rel="noreferrer">
+                        {p.value}{" "}
+                        <span className="muted" style={{ fontSize: 12 }}>
+                          · {p.label}
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                </Info>
+                <Info label="E-mail">
+                  <a href={`mailto:${company.email}`} style={linkStyle}>
+                    {company.email}
+                  </a>
+                </Info>
+              </div>
             </div>
-            <ContactForm />
+
+            <div
+              style={{
+                padding: "clamp(28px,4vw,54px)",
+                background: "linear-gradient(180deg, rgba(201,168,106,0.08), rgba(255,255,255,0.02))",
+                borderLeft: "1px solid var(--line)",
+              }}
+            >
+              <div style={{ fontFamily: "var(--font-display)", fontSize: 22, marginBottom: 16 }}>
+                Submit a request
+              </div>
+              <ContactForm />
+            </div>
           </div>
-        </div>
+        </FadeUp>
       </div>
       <style>{`@media(max-width:820px){.contact-grid{grid-template-columns:1fr !important}.contact-grid>div:last-child{border-left:none !important;border-top:1px solid var(--line)}}`}</style>
     </section>
@@ -569,25 +638,18 @@ export function Footer() {
     <footer
       style={{
         borderTop: "1px solid var(--line)",
-        background: "rgba(255,255,255,0.015)",
-        padding: "56px 0 40px",
+        background: "var(--panel)",
+        padding: "60px 0 40px",
       }}
     >
       <div
         className="container footer-grid"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1.4fr 1fr 1fr",
-          gap: 40,
-        }}
+        style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", gap: 40 }}
       >
         <div>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: 24 }}>
-            {company.name}
-          </div>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 24 }}>{company.name}</div>
           <p className="muted" style={{ fontSize: 14, marginTop: 12, maxWidth: 320, lineHeight: 1.6 }}>
-            {company.tagline}. {company.legalName} — bespoke natural stone since{" "}
-            {company.founded}.
+            {company.tagline}. {company.legalName} — bespoke natural stone since {company.founded}.
           </p>
         </div>
         <div>
@@ -617,13 +679,7 @@ export function Footer() {
         <div className="hairline" style={{ margin: "36px 0 20px" }} />
         <div
           className="muted"
-          style={{
-            fontSize: 13,
-            display: "flex",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: 8,
-          }}
+          style={{ fontSize: 13, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}
         >
           <span>
             © {new Date().getFullYear()} {company.legalName}. All rights reserved.
