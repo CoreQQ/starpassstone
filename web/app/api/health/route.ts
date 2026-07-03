@@ -9,6 +9,11 @@ export const dynamic = "force-dynamic";
  */
 export async function GET() {
   const has = (name: string) => !!process.env[name]?.trim();
+  const storage = has("DATABASE_URL")
+    ? "postgres"
+    : has("BLOB_READ_WRITE_TOKEN")
+      ? "vercel-blob"
+      : "ephemeral";
   return NextResponse.json({
     ok: true,
     env: {
@@ -20,7 +25,12 @@ export async function GET() {
       BLOB_READ_WRITE_TOKEN: has("BLOB_READ_WRITE_TOKEN"),
       DATABASE_URL: has("DATABASE_URL"),
     },
+    storage,
+    warning:
+      storage === "ephemeral"
+        ? "No Blob store or database connected — analytics, admin photo edits, news, banners and registered users will NOT persist. Connect Vercel Blob (Storage → Blob) or set DATABASE_URL."
+        : undefined,
     // Bump when debugging deploys to confirm which build is live.
-    codeVersion: 3,
+    codeVersion: 4,
   });
 }

@@ -102,24 +102,34 @@ export const prismaDriver: Repo = {
     return clean;
   },
 
+  // Analytics writes are best-effort — a hiccuping database must not take
+  // down login, tracking or the contact form.
   recordVisit: async (visit) => {
-    await prisma.visit.create({ data: visit });
+    await prisma.visit
+      .create({ data: visit })
+      .catch((e) => console.error("[analytics] visit write failed:", e?.message ?? e));
   },
   recordDuration: async (visitorId, duration) => {
     if (!visitorId || !Number.isFinite(duration) || duration <= 0) return;
-    const last = await prisma.visit.findFirst({
-      where: { visitorId, duration: null },
-      orderBy: { at: "desc" },
-    });
-    if (last) {
-      await prisma.visit.update({
-        where: { id: last.id },
-        data: { duration: Math.min(Math.round(duration), 60 * 60) },
+    try {
+      const last = await prisma.visit.findFirst({
+        where: { visitorId, duration: null },
+        orderBy: { at: "desc" },
       });
+      if (last) {
+        await prisma.visit.update({
+          where: { id: last.id },
+          data: { duration: Math.min(Math.round(duration), 60 * 60) },
+        });
+      }
+    } catch (e) {
+      console.error("[analytics] duration write failed:", e instanceof Error ? e.message : e);
     }
   },
   addLog: async (entry) => {
-    await prisma.log.create({ data: entry });
+    await prisma.log
+      .create({ data: entry })
+      .catch((e) => console.error("[analytics] log write failed:", e?.message ?? e));
   },
   getStats: async () => {
     const [visitRows, logRows] = await Promise.all([
