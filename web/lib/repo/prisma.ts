@@ -16,7 +16,7 @@ import type {
 import { randomUUID } from "crypto";
 
 type Section = keyof SiteContent;
-const SECTIONS: Section[] = ["products", "hamamGallery", "saunaGallery"];
+const SECTIONS: Section[] = ["products", "hamamGallery", "saunaGallery", "portfolio"];
 
 type MediaRow = {
   id: string;
@@ -24,20 +24,27 @@ type MediaRow = {
   title: string;
   desc: string;
   img: string;
+  tag: string;
   position: number;
 };
 
 function rowsToContent(rows: MediaRow[]): SiteContent {
-  const out: SiteContent = { products: [], hamamGallery: [], saunaGallery: [] };
+  const out: SiteContent = {
+    products: [],
+    hamamGallery: [],
+    saunaGallery: [],
+    portfolio: [],
+  };
   for (const s of SECTIONS) {
     out[s] = rows
       .filter((r) => r.section === s)
       .sort((a, b) => a.position - b.position)
-      .map((r): Item =>
-        s === "products"
-          ? { id: r.id, title: r.title, desc: r.desc, img: r.img }
-          : { id: r.id, title: r.title, img: r.img }
-      );
+      .map((r): Item => {
+        const base: Item = { id: r.id, title: r.title, img: r.img };
+        if (s === "products") base.desc = r.desc;
+        if (r.tag) base.tag = r.tag;
+        return base;
+      });
   }
   return out;
 }
@@ -50,6 +57,7 @@ async function persistContent(content: SiteContent): Promise<void> {
       title: item.title,
       desc: item.desc ?? "",
       img: item.img,
+      tag: item.tag ?? "",
       position,
     }))
   );

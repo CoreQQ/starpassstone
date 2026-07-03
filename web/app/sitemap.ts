@@ -11,12 +11,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: "monthly" as const,
     priority: 1,
   };
-  // The site is a single scrolling page; expose its sections as anchors.
+  // Localized regional landing pages (Côte d'Azur market).
+  const locales = ["fr", "ru", "it"].map((l) => ({
+    url: `${SITE_URL}/${l}`,
+    lastModified: now,
+    changeFrequency: "monthly" as const,
+    priority: 0.9,
+  }));
+  // The main site is a single scrolling page; expose its sections as anchors.
   const sections = nav.map((n) => ({
     url: `${SITE_URL}/#${n.id}`,
     lastModified: now,
     changeFrequency: "monthly" as const,
     priority: 0.6,
   }));
-  return [home, ...sections];
+  return [home, ...locales, ...sections];
 }

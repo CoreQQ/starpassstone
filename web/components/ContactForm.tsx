@@ -4,7 +4,29 @@ import { useState } from "react";
 
 type Status = "idle" | "loading" | "ok" | "error";
 
-export default function ContactForm({ compact = false }: { compact?: boolean }) {
+export type FormLabels = {
+  name: string;
+  phone: string;
+  submit: string;
+  note: string;
+  ok: string;
+};
+
+const EN_LABELS: FormLabels = {
+  name: "Enter your name",
+  phone: "Your phone number",
+  submit: "Submit a request",
+  note: "Leave your details and we'll contact you on WhatsApp.",
+  ok: "We will contact you on WhatsApp shortly.",
+};
+
+export default function ContactForm({
+  compact = false,
+  labels = EN_LABELS,
+}: {
+  compact?: boolean;
+  labels?: FormLabels;
+}) {
   const [status, setStatus] = useState<Status>("idle");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -40,7 +62,7 @@ export default function ContactForm({ compact = false }: { compact?: boolean }) 
           Thank you!
         </div>
         <p className="muted" style={{ margin: "8px 0 0", fontSize: 14.5 }}>
-          We will contact you on WhatsApp shortly.
+          {labels.ok}
         </p>
       </div>
     );
@@ -54,14 +76,14 @@ export default function ContactForm({ compact = false }: { compact?: boolean }) 
     >
       <input
         className="field"
-        placeholder="Enter your name"
+        placeholder={labels.name}
         value={name}
         onChange={(e) => setName(e.target.value)}
         required
       />
       <input
         className="field"
-        placeholder="Your phone number"
+        placeholder={labels.phone}
         value={phone}
         inputMode="tel"
         onChange={(e) => setPhone(e.target.value)}
@@ -74,10 +96,10 @@ export default function ContactForm({ compact = false }: { compact?: boolean }) 
         style={{ width: "100%", opacity: status === "loading" ? 0.7 : 1 }}
       >
         {status === "loading"
-          ? "Sending…"
+          ? "…"
           : compact
             ? "Call me back"
-            : "Submit a request"}
+            : labels.submit}
       </button>
       <p
         className="muted"
@@ -85,7 +107,7 @@ export default function ContactForm({ compact = false }: { compact?: boolean }) 
       >
         {status === "error"
           ? "Something went wrong — please call us instead."
-          : "Leave your details and we'll contact you on WhatsApp."}
+          : labels.note}
       </p>
     </form>
   );

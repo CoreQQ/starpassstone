@@ -28,6 +28,7 @@ export const nav = [
   { id: "products", label: "Products" },
   { id: "hamam", label: "Hamams" },
   { id: "sauna", label: "Saunas" },
+  { id: "gallery", label: "Gallery" },
   { id: "about", label: "About" },
   { id: "faq", label: "FAQ" },
   { id: "contact", label: "Contact" },
@@ -75,7 +76,22 @@ export const advantages = [
   },
 ];
 
+// Cities named on-page for local SEO — keep in sync with layout JSON-LD.
+export const serviceArea = {
+  short: "Côte d'Azur · Monaco · Ireland",
+  line: "Serving the Côte d'Azur — Nice, Cannes, Monaco, Saint-Tropez, Antibes — as well as Dublin and all of Ireland.",
+  cities: ["Nice", "Cannes", "Monaco", "Saint-Tropez", "Antibes", "Menton", "Dublin"],
+};
+
 export const faq = [
+  {
+    q: "What stone works do you undertake?",
+    a: "Any work with natural stone: supply and selection of marble, granite, onyx, travertine and quartzite; fabrication and installation of fireplaces, staircases, columns, worktops, bathrooms, facades and floors; hammam and sauna construction; restoration and ongoing maintenance. If it is made of stone — we do it.",
+  },
+  {
+    q: "Do you work on the Côte d'Azur (French Riviera)?",
+    a: "Yes. We carry out stone projects across the Côte d'Azur — Nice, Cannes, Monaco, Saint-Tropez, Antibes and Menton — as well as in Dublin and throughout Ireland. Our team travels to the site for measurement, installation and author's supervision.",
+  },
   {
     q: "What products do you make from natural stone?",
     a: "Fireplaces (classic, electric and bio), hammams, saunas, table tops and kitchen worktops, bathrooms, staircases, marble columns and outdoor BBQ zones — any style and degree of complexity.",

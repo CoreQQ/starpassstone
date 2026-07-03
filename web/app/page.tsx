@@ -9,6 +9,7 @@ import {
   Products,
   Hamam,
   Sauna,
+  GallerySection,
   News,
   About,
   Faq,
@@ -65,6 +66,7 @@ export default async function Home() {
         <Products items={content.products} />
         <Hamam gallery={content.hamamGallery} />
         <Sauna gallery={content.saunaGallery} />
+        <GallerySection items={content.portfolio} />
         <News posts={news} />
         <About />
         <Faq />

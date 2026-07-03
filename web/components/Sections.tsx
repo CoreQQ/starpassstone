@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { FadeUp, Stagger, FadeItem } from "./motion";
 import ContactForm from "./ContactForm";
+import PortfolioGallery from "./PortfolioGallery";
 import {
   categories,
   advantages,
@@ -11,6 +12,7 @@ import {
   sauna,
   about,
   company,
+  serviceArea,
 } from "@/lib/content";
 import type { Item, SiteContent } from "@/lib/store";
 import type { NewsPost } from "@/lib/repo";
@@ -400,6 +402,28 @@ export function Sauna({ gallery }: { gallery: Item[] }) {
   );
 }
 
+/* ---------- Full portfolio gallery ---------- */
+export function GallerySection({ items }: { items: Item[] }) {
+  if (!items.length) return null;
+  return (
+    <section id="gallery" className="section" style={{ paddingTop: 0 }}>
+      <div className="container">
+        <FadeUp className="section-head">
+          <span className="eyebrow">Portfolio</span>
+          <h2 className="display section-title">Our work in stone</h2>
+          <p className="section-sub">
+            The full archive — every project photographed since 1998: interiors,
+            fireplaces, hammams, saunas and production.
+          </p>
+        </FadeUp>
+        <FadeUp>
+          <PortfolioGallery items={items} />
+        </FadeUp>
+      </div>
+    </section>
+  );
+}
+
 /* ---------- News ---------- */
 export function News({ posts }: { posts: NewsPost[] }) {
   if (!posts.length) return null;
@@ -587,6 +611,9 @@ export function Contact() {
               </p>
 
               <div style={{ marginTop: 30, display: "grid", gap: 16 }}>
+                <Info label="Service area">
+                  <span style={{ ...linkStyle, color: "var(--muted)" }}>{serviceArea.line}</span>
+                </Info>
                 <Info label="Address">
                   <a href={company.mapsUrl} target="_blank" rel="noreferrer" style={linkStyle}>
                     {company.address}
@@ -647,6 +674,15 @@ export function Footer() {
         style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", gap: 40 }}
       >
         <div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.png"
+            alt="Star Pass Stone logo"
+            width={72}
+            height={56}
+            className="brand-logo"
+            style={{ display: "block", height: 56, width: "auto", marginBottom: 14 }}
+          />
           <div style={{ fontFamily: "var(--font-display)", fontSize: 24 }}>{company.name}</div>
           <p className="muted" style={{ fontSize: 14, marginTop: 12, maxWidth: 320, lineHeight: 1.6 }}>
             {company.tagline}. {company.legalName} — bespoke natural stone since {company.founded}.
@@ -673,6 +709,13 @@ export function Footer() {
           <a href={`mailto:${company.email}`} style={footerLink}>
             {company.email}
           </a>
+          <div style={{ marginTop: 18 }}>
+            <FooterTitle>Languages</FooterTitle>
+            <a href="/" style={footerLink}>English</a>
+            <a href="/fr" style={footerLink}>Français — Côte d&apos;Azur</a>
+            <a href="/it" style={footerLink}>Italiano — Costa Azzurra</a>
+            <a href="/ru" style={footerLink}>Русский — Лазурный берег</a>
+          </div>
         </div>
       </div>
       <div className="container">
@@ -684,7 +727,7 @@ export function Footer() {
           <span>
             © {new Date().getFullYear()} {company.legalName}. All rights reserved.
           </span>
-          <span>Natural stone in design.</span>
+          <span>Natural stone in design · {serviceArea.short}</span>
         </div>
       </div>
       <style>{`@media(max-width:760px){.footer-grid{grid-template-columns:1fr !important;gap:28px !important}}`}</style>

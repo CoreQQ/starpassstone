@@ -3,13 +3,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /* ---------------- Types ---------------- */
-type Item = { id: string; title: string; desc?: string; img: string };
+type Item = { id: string; title: string; desc?: string; img: string; tag?: string };
 type Content = {
   products: Item[];
   hamamGallery: Item[];
   saunaGallery: Item[];
+  portfolio: Item[];
 };
 type SectionKey = keyof Content;
+
+const PORTFOLIO_TAGS = ["design", "products", "fireplaces", "hammam", "sauna", "production"];
 
 type Bar = { key: string; count: number };
 type Visit = {
@@ -83,10 +86,11 @@ type Tab =
   | "logs"
   | "settings";
 
-const SECTIONS: { key: SectionKey; label: string; hasDesc: boolean }[] = [
+const SECTIONS: { key: SectionKey; label: string; hasDesc: boolean; hasTag?: boolean }[] = [
   { key: "products", label: "Products", hasDesc: true },
   { key: "hamamGallery", label: "Hamam gallery", hasDesc: false },
   { key: "saunaGallery", label: "Sauna gallery", hasDesc: false },
+  { key: "portfolio", label: "Portfolio (full gallery)", hasDesc: false, hasTag: true },
 ];
 
 const TABS: { key: Tab; label: string }[] = [
@@ -369,7 +373,8 @@ export default function AdminPage() {
                 key={s.key}
                 label={s.label}
                 hasDesc={s.hasDesc}
-                items={content[s.key]}
+                hasTag={!!s.hasTag}
+                items={content[s.key] ?? []}
                 onChange={(items) => update(s.key, items)}
               />
             ))}
@@ -1138,11 +1143,13 @@ function TelegramTest() {
 function PhotoSection({
   label,
   hasDesc,
+  hasTag = false,
   items,
   onChange,
 }: {
   label: string;
   hasDesc: boolean;
+  hasTag?: boolean;
   items: Item[];
   onChange: (items: Item[]) => void;
 }) {
@@ -1193,6 +1200,7 @@ function PhotoSection({
             key={it.id}
             item={it}
             hasDesc={hasDesc}
+            hasTag={hasTag}
             isFirst={idx === 0}
             isLast={idx === items.length - 1}
             onSet={(p) => set(it.id, p)}
@@ -1208,6 +1216,7 @@ function PhotoSection({
 function ItemCard({
   item,
   hasDesc,
+  hasTag = false,
   isFirst,
   isLast,
   onSet,
@@ -1216,6 +1225,7 @@ function ItemCard({
 }: {
   item: Item;
   hasDesc: boolean;
+  hasTag?: boolean;
   isFirst: boolean;
   isLast: boolean;
   onSet: (p: Partial<Item>) => void;
@@ -1296,6 +1306,20 @@ function ItemCard({
             style={{ resize: "vertical", fontFamily: "inherit" }}
             onChange={(e) => onSet({ desc: e.target.value })}
           />
+        )}
+        {hasTag && (
+          <select
+            className="field"
+            value={item.tag ?? ""}
+            onChange={(e) => onSet({ tag: e.target.value })}
+          >
+            <option value="">— category —</option>
+            {PORTFOLIO_TAGS.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
         )}
         {error && <span style={{ color: "#e98", fontSize: 12 }}>{error}</span>}
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>

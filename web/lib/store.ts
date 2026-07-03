@@ -8,12 +8,16 @@ export type Item = {
   title: string;
   desc?: string;
   img: string;
+  /** Portfolio category (design | products | fireplaces | hammam | sauna | production). */
+  tag?: string;
 };
 
 export type SiteContent = {
   products: Item[];
   hamamGallery: Item[];
   saunaGallery: Item[];
+  /** The full photo archive shown in the filterable Gallery section. */
+  portfolio: Item[];
 };
 
 const CONTENT_KEY = "content.json";
@@ -33,6 +37,28 @@ function item(title: string, img: string, desc?: string): Item {
   return desc !== undefined
     ? { id: randomUUID(), title, img, desc }
     : { id: randomUUID(), title, img };
+}
+
+// All 98 photos mirrored from the original site, mapped to the section each
+// belonged to there (extracted from the old SPA's page chunks).
+const PORTFOLIO_RANGES: [from: number, to: number, tag: string][] = [
+  [1, 20, "design"],
+  [21, 43, "products"],
+  [44, 60, "fireplaces"],
+  [61, 70, "hammam"],
+  [71, 89, "sauna"],
+  [90, 98, "production"],
+];
+
+function seedPortfolio(): Item[] {
+  return PORTFOLIO_RANGES.flatMap(([from, to, tag]) =>
+    Array.from({ length: to - from + 1 }, (_, i) => ({
+      id: randomUUID(),
+      title: "",
+      img: `/photos/${from + i}.jpg`,
+      tag,
+    }))
+  );
 }
 
 /** Default content used to seed the store on first run. */
@@ -60,6 +86,7 @@ function seed(): SiteContent {
       item("Sauna interior", "/photos/76.jpg"),
       item("Sauna lighting", "/photos/77.jpg"),
     ],
+    portfolio: seedPortfolio(),
   };
 }
 
@@ -69,6 +96,7 @@ function normalize(parsed: Partial<SiteContent>): SiteContent {
     products: parsed.products ?? base.products,
     hamamGallery: parsed.hamamGallery ?? base.hamamGallery,
     saunaGallery: parsed.saunaGallery ?? base.saunaGallery,
+    portfolio: parsed.portfolio ?? base.portfolio,
   };
 }
 
@@ -138,6 +166,9 @@ export function sanitizeContent(input: unknown): SiteContent {
               img: String(x.img).slice(0, 1000),
             };
             if (withDesc) base.desc = String(x.desc ?? "").slice(0, 400);
+            if (typeof x.tag === "string" && x.tag.trim()) {
+              base.tag = x.tag.trim().slice(0, 40);
+            }
             return base;
           })
       : [];
@@ -146,6 +177,7 @@ export function sanitizeContent(input: unknown): SiteContent {
     products: clean(data.products, true),
     hamamGallery: clean(data.hamamGallery, false),
     saunaGallery: clean(data.saunaGallery, false),
+    portfolio: clean(data.portfolio, false),
   };
 }
 

@@ -45,11 +45,20 @@ export default function Header() {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 12,
+            gap: 14,
             textDecoration: "none",
           }}
         >
-          <Logo />
+          {/* Original Star Pass Stone logo; black artwork inverted for the dark theme */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.png"
+            alt="Star Pass Stone logo"
+            width={56}
+            height={44}
+            className="brand-logo"
+            style={{ display: "block", height: 44, width: "auto" }}
+          />
           <span style={{ lineHeight: 1 }}>
             <span
               style={{
@@ -199,22 +208,3 @@ export default function Header() {
   );
 }
 
-function Logo() {
-  return (
-    <svg width="38" height="38" viewBox="0 0 48 48" fill="none" aria-hidden>
-      <defs>
-        <linearGradient id="lg" x1="0" y1="0" x2="48" y2="48">
-          <stop stopColor="#e3cb96" />
-          <stop offset="1" stopColor="#9c8350" />
-        </linearGradient>
-      </defs>
-      <path
-        d="M24 3l5.6 12.4L43 17.2l-9.8 9.1L35.8 40 24 33.2 12.2 40l2.6-13.7L5 17.2l13.4-1.8L24 3z"
-        stroke="url(#lg)"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <circle cx="24" cy="23" r="4.2" fill="url(#lg)" />
-    </svg>
-  );
-}
