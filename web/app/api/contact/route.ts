@@ -73,7 +73,7 @@ export async function POST(req: Request) {
       `🌐 IP: ${esc(ip)}\n` +
       `📍 ${esc(info.city)}, ${esc(info.country)}`
   );
-  if (sent) return NextResponse.json({ ok: true });
+  if (sent.ok) return NextResponse.json({ ok: true });
 
   // 3) Demo mode
   console.log("[contact] new lead (demo mode):", lead);

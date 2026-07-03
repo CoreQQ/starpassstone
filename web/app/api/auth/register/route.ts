@@ -46,7 +46,7 @@ export async function POST(req: Request) {
   const user = await r.createUser({ email, name, password: hash });
 
   await r.addLog({ type: "user_register", ip, message: `New user registered: ${email}` });
-  void sendTelegram(`🧑‍💼 *New user registered*\n📧 ${esc(email)}${name ? `\n👤 ${esc(name)}` : ""}`);
+  await sendTelegram(`🧑‍💼 *New user registered*\n📧 ${esc(email)}${name ? `\n👤 ${esc(name)}` : ""}`);
 
   const token = await signSession({ id: user.id, email: user.email, role: user.role });
   const res = NextResponse.json({ user });

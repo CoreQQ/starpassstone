@@ -33,7 +33,7 @@ export async function POST(req: Request) {
 
   const info = readRequestInfo(h);
   await r.addLog({ type: "admin_login", ip, message: `Admin signed in from ${info.country}` });
-  void sendTelegram(
+  await sendTelegram(
     `🔐 *Admin login*\n🌐 IP: ${esc(ip)}\n📍 ${esc(info.city)}, ${esc(info.country)}\n💻 ${esc(info.device)} · ${esc(info.browser)}`
   );
 

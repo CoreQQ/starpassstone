@@ -1070,6 +1070,7 @@ function Settings({
               </>
             )}
           </p>
+          <TelegramTest />
         </div>
         <div className="card" style={{ padding: 24 }}>
           <h3 style={panelH}>Admin password</h3>
@@ -1081,6 +1082,55 @@ function Settings({
         </div>
       </div>
     </>
+  );
+}
+
+/** Sends a test Telegram message and shows the exact API error on failure. */
+function TelegramTest() {
+  const [state, setState] = useState<{ busy: boolean; msg: string; ok: boolean | null }>({
+    busy: false,
+    msg: "",
+    ok: null,
+  });
+
+  async function run() {
+    setState({ busy: true, msg: "", ok: null });
+    try {
+      const res = await fetch("/api/admin/telegram-test", { method: "POST" });
+      const data = await res.json();
+      setState({
+        busy: false,
+        ok: !!data.ok,
+        msg: data.ok ? "Test message sent — check your Telegram." : data.error || "Failed",
+      });
+    } catch {
+      setState({ busy: false, ok: false, msg: "Request failed" });
+    }
+  }
+
+  return (
+    <div style={{ marginTop: 12 }}>
+      <button
+        className="btn btn-ghost"
+        style={{ padding: "9px 18px", opacity: state.busy ? 0.7 : 1 }}
+        onClick={run}
+        disabled={state.busy}
+      >
+        {state.busy ? "Sending…" : "Send test message"}
+      </button>
+      {state.msg && (
+        <p
+          style={{
+            fontSize: 13.5,
+            marginTop: 10,
+            marginBottom: 0,
+            color: state.ok ? "#5aa06a" : "#e07a5f",
+          }}
+        >
+          {state.msg}
+        </p>
+      )}
+    </div>
   );
 }
 
