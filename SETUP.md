@@ -122,9 +122,12 @@ npm run db:migrate     # = prisma migrate deploy
 2. **Root Directory: `web`** (важно!). Framework определится как Next.js.
 3. Добавьте переменные окружения из таблицы выше (минимум: `ADMIN_PASSWORD`,
    `ADMIN_SECRET`, `JWT_SECRET`; плюс Telegram и Supabase).
-4. **Storage → Create Database → Blob** и подключите к проекту — это нужно,
-   чтобы фото, загруженные через админку, сохранялись между деплоями
-   (токен `BLOB_READ_WRITE_TOKEN` добавится сам).
+4. **Storage → Create Database → Blob** и подключите к проекту — токен
+   `BLOB_READ_WRITE_TOKEN` добавится сам. **Это обязательный шаг**, если не
+   используете Supabase: без Blob и без базы файловая система Vercel
+   read-only, и аналитика, новости, баннеры, загрузка фото и пользователи
+   не будут сохраняться. Проверить: `/api/health` → `storage` должен быть
+   `vercel-blob` или `postgres`, не `ephemeral`.
 5. Deploy. После деплоя добавьте свой домен: Project → Settings → Domains →
    `starpassstone.net` (у регистратора направьте DNS по инструкции Vercel).
 6. Пропишите `NEXT_PUBLIC_SITE_URL=https://starpassstone.net` и сделайте

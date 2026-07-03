@@ -102,16 +102,27 @@ export async function readAnalytics(): Promise<AnalyticsData> {
   }
 }
 
+// Best-effort persistence: analytics/audit-log writes must NEVER take down the
+// request that triggered them. Without Blob or a database on a serverless host
+// the filesystem is read-only — in that case we log to the console and move on
+// (login, tracking and the contact form keep working; history just isn't kept).
 async function writeAnalytics(data: AnalyticsData): Promise<void> {
   const trimmed: AnalyticsData = {
     visits: data.visits.slice(-MAX_VISITS),
     logs: data.logs.slice(-MAX_LOGS),
   };
-  if (useBlob) {
-    await blobWrite(trimmed);
-  } else {
-    await fs.mkdir(DATA_DIR, { recursive: true });
-    await fs.writeFile(DATA_FILE, JSON.stringify(trimmed), "utf8");
+  try {
+    if (useBlob) {
+      await blobWrite(trimmed);
+    } else {
+      await fs.mkdir(DATA_DIR, { recursive: true });
+      await fs.writeFile(DATA_FILE, JSON.stringify(trimmed), "utf8");
+    }
+  } catch (e) {
+    console.error(
+      "[analytics] write failed (connect Vercel Blob or set DATABASE_URL to persist):",
+      e instanceof Error ? e.message : e
+    );
   }
 }
 
