@@ -59,7 +59,10 @@ export function FadeUp({
       custom={delay}
       initial="hidden"
       whileInView="show"
-      viewport={{ once: true, amount: 0.18, margin: "0px 0px -8% 0px" }}
+      // "some": trigger as soon as any part enters the viewport. A fractional
+      // amount never fires for blocks taller than the screen (tall grids on
+      // mobile), leaving them permanently invisible.
+      viewport={{ once: true, amount: "some", margin: "0px 0px -8% 0px" }}
     >
       {children}
     </m.div>
@@ -92,7 +95,7 @@ export function Stagger({
       style={style}
       initial="hidden"
       whileInView="show"
-      viewport={{ once: true, amount: 0.12 }}
+      viewport={{ once: true, amount: "some" }}
       variants={{ hidden: {}, show: { transition: { staggerChildren: gap } } }}
     >
       {children}
