@@ -4,6 +4,9 @@
   "private": true,
   "description": "AI-агенты для бизнеса по работе с камнем: общаются в Telegram-группе, учатся друг у друга и ставят задачи владельцу",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "tsx src/index.ts",
     "dev": "tsx watch src/index.ts",

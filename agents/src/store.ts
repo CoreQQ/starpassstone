@@ -3,8 +3,10 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 // Простое файловое хранилище (JSON) — общая память всех агентов.
+// На хостингах с эфемерным диском (Railway, Render) задайте DATA_DIR
+// на смонтированный volume, например DATA_DIR=/data.
 const here = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = path.resolve(here, "..", "data");
+const DATA_DIR = process.env.DATA_DIR || path.resolve(here, "..", "data");
 
 export interface Lesson {
   id: number;
