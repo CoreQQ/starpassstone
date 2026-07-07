@@ -160,17 +160,14 @@ export function Stones() {
           {stones.map((s) => (
             <FadeItem key={s.name}>
               <div className="card card-shine" style={{ overflow: "hidden" }}>
-                <div
-                  style={{
-                    height: 150,
-                    background: `radial-gradient(120px 80px at 30% 20%, ${s.accent}55, transparent 60%), radial-gradient(160px 120px at 80% 90%, ${s.accent}33, transparent 60%), ${s.color}`,
-                    position: "relative",
-                  }}
-                >
-                  <svg style={{ position: "absolute", inset: 0, opacity: 0.35 }} width="100%" height="100%">
-                    <path d="M0 90 Q 60 40 140 80 T 320 70" stroke={s.accent} strokeWidth="1.2" fill="none" />
-                    <path d="M0 120 Q 90 100 180 130 T 340 110" stroke={s.accent} strokeWidth="0.8" fill="none" opacity="0.6" />
-                  </svg>
+                <div style={{ position: "relative", height: 170 }}>
+                  <Image
+                    src={s.img}
+                    alt={`${s.name} — ${s.note}`}
+                    fill
+                    sizes="(max-width:600px) 100vw, 240px"
+                    style={{ objectFit: "cover" }}
+                  />
                 </div>
                 <div style={{ padding: "16px 18px" }}>
                   <div style={{ fontFamily: "var(--font-display)", fontSize: 19 }}>{s.name}</div>

@@ -127,36 +127,43 @@ export const design = {
   ],
 };
 
+// Slab photos are the original site's stone-palette images (/public/photos).
+// color/accent are still used for the hero palette chips.
 export const stones = [
   {
     name: "Calacatta",
     note: "Italian marble · luminous white with bold veining",
     color: "#e9e6df",
     accent: "#b9a98f",
+    img: "/photos/8.jpg",
   },
   {
     name: "Sadolit Blue",
     note: "Deep blue quartzite · dramatic movement",
     color: "#2a3a52",
     accent: "#5a7fb0",
+    img: "/photos/9.jpg",
   },
   {
     name: "Ukrainian Labradorite",
     note: "Black granite · iridescent flecks",
     color: "#14181c",
     accent: "#3d6b6e",
+    img: "/photos/12.jpg",
   },
   {
     name: "Nero Marquina",
     note: "Spanish black marble · crisp white veins",
     color: "#16161a",
     accent: "#8a8a93",
+    img: "/photos/14.jpg",
   },
   {
     name: "Onyx",
     note: "Translucent stone · backlit elegance",
     color: "#caa66a",
     accent: "#e9c98c",
+    img: "/photos/17.jpg",
   },
 ];
 
