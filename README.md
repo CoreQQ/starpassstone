@@ -10,6 +10,7 @@ Same information as the original site, rebuilt with a fresh dark, luxury-tech ae
 | **Data layer** (`/web/lib/repo`) | Prisma 6 · PostgreSQL / **Supabase** — with a zero-infra JSON/Vercel Blob fallback |
 | **Auth** | Admin: signed-cookie password session · Users: bcrypt + JWT (jose) |
 | **Backend** (`/api`) | NestJS 10 · TypeScript · class-validator (optional lead service) |
+| **AI agents** (`/agents`) | Claude API · Telegram bot — a 4-agent business team (sales, ads, lead scouting, procurement) |
 
 The frontend is fully self-contained — it ships its own `/api/contact` route handler,
 so it runs without the NestJS service. The NestJS app is an optional, production-grade
@@ -46,6 +47,15 @@ Blob in production or `web/uploads/` locally.
 
 > 🇷🇺 Пошаговая инструкция по настройке (Telegram, Supabase, Vercel):
 > **[SETUP.md](SETUP.md)**
+
+## 🤖 AI agents (`/agents`)
+
+A standalone service that runs a **team of four AI agents** (Claude) inside a
+Telegram group with the owner: a client-communication manager, a targeted-ads
+marketer, a lead/object scout, and a procurement agent. They talk to each
+other, share a common knowledge base (learn from each other's lessons), search
+the web, and assign tasks to the owner — with daily morning stand-ups and
+evening reports. Setup guide (RU): **[agents/README.md](agents/README.md)**.
 
 ## Admin dashboard
 
