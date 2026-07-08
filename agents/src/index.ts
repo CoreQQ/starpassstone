@@ -145,9 +145,11 @@ async function main(): Promise<void> {
 
   if (config.telegramGroupId) {
     startScheduler((text) => sendMessage(config.telegramGroupId, text));
-    console.log(
-      `⏰ Планёрка в ${config.morningHour}:00, отчёт в ${config.eveningHour}:00 (${config.timezone})`,
-    );
+    const morning =
+      config.morningHour >= 0 && config.morningHour <= 23
+        ? `планёрка в ${config.morningHour}:00`
+        : "планёрка вручную (/standup)";
+    console.log(`⏰ ${morning}, отчёт в ${config.eveningHour}:00 (${config.timezone})`);
   } else {
     console.log("⏰ Планировщик выключен (нужен TELEGRAM_GROUP_ID).");
   }

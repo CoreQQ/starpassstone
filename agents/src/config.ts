@@ -33,13 +33,15 @@ export const config = {
   telegramBotToken: required("TELEGRAM_BOT_TOKEN"),
   // Если задан — бот работает только в этой группе (рекомендуется).
   telegramGroupId: process.env.TELEGRAM_GROUP_ID || "",
-  model: process.env.AGENT_MODEL || "claude-opus-4-8",
+  model: process.env.AGENT_MODEL || "claude-sonnet-5",
   // Быстрая модель для диспетчера (кто должен ответить) — по умолчанию Haiku.
   routerModel: process.env.ROUTER_MODEL || "claude-haiku-4-5",
   // Глубина "раздумий" агентов: low = быстро, medium/high = вдумчивее, но дольше.
   agentEffort: (process.env.AGENT_EFFORT || "low") as "low" | "medium" | "high",
   timezone: safeTimezone(process.env.TIMEZONE || "Europe/Rome"),
-  morningHour: Number(process.env.MORNING_HOUR ?? 9),
+  // Утренняя планёрка по расписанию выключена по умолчанию (экономия токенов) —
+  // проводится вручную командой /standup. Чтобы включить, задайте MORNING_HOUR=9.
+  morningHour: process.env.MORNING_HOUR ? Number(process.env.MORNING_HOUR) : -1,
   eveningHour: Number(process.env.EVENING_HOUR ?? 19),
   ownerName: process.env.OWNER_NAME || "Владелец",
   businessProfile:
