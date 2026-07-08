@@ -33,9 +33,17 @@ export interface ChatMessage {
   ts: string;
 }
 
+// Постоянная память: факты, предпочтения и указания от владельца/команды.
+export interface Note {
+  id: number;
+  text: string;
+  ts: string;
+}
+
 interface Db {
   lessons: Lesson[];
   tasks: Task[];
+  notes: Note[];
   history: Record<string, ChatMessage[]>; // по chat_id
   state: Record<string, string>; // служебное (последняя планёрка и т.п.)
   nextId: number;
@@ -46,11 +54,21 @@ function dbPath(): string {
 }
 
 function load(): Db {
+  let raw: Partial<Db> = {};
   try {
-    return JSON.parse(fs.readFileSync(dbPath(), "utf-8")) as Db;
+    raw = JSON.parse(fs.readFileSync(dbPath(), "utf-8")) as Partial<Db>;
   } catch {
-    return { lessons: [], tasks: [], history: {}, state: {}, nextId: 1 };
+    // нет файла — начнём с пустой базы
   }
+  // Дозаполняем недостающие поля (база могла быть создана старой версией).
+  return {
+    lessons: raw.lessons ?? [],
+    tasks: raw.tasks ?? [],
+    notes: raw.notes ?? [],
+    history: raw.history ?? {},
+    state: raw.state ?? {},
+    nextId: raw.nextId ?? 1,
+  };
 }
 
 function save(db: Db): void {
@@ -77,6 +95,27 @@ export const store = {
 
   recentLessons(limit = 15): Lesson[] {
     return load().lessons.slice(-limit);
+  },
+
+  addNote(text: string): Note {
+    const db = load();
+    const note: Note = { id: db.nextId++, text, ts: new Date().toISOString() };
+    db.notes.push(note);
+    db.notes = db.notes.slice(-100);
+    save(db);
+    return note;
+  },
+
+  deleteNote(id: number): boolean {
+    const db = load();
+    const before = db.notes.length;
+    db.notes = db.notes.filter((n) => n.id !== id);
+    save(db);
+    return db.notes.length < before;
+  },
+
+  notes(limit = 60): Note[] {
+    return load().notes.slice(-limit);
   },
 
   addTask(

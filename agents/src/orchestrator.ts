@@ -11,6 +11,31 @@ export type Publish = (text: string) => Promise<void>;
 function customTools(): Anthropic.Messages.ToolUnion[] {
   return [
     {
+      name: "remember",
+      description:
+        "Сохранить в постоянную память команды факт, предпочтение или указание от владельца/сотрудника. Память видят ВСЕ агенты во всех будущих разговорах. Использовать сразу, как только прозвучало что-то, что нужно учитывать дальше.",
+      input_schema: {
+        type: "object",
+        properties: {
+          text: {
+            type: "string",
+            description:
+              "Краткая формулировка от третьего лица, например: «Не предлагать гранит — работаем только с мрамором и ониксом»",
+          },
+        },
+        required: ["text"],
+      },
+    },
+    {
+      name: "forget",
+      description: "Удалить устаревшую запись из постоянной памяти по её номеру (#id).",
+      input_schema: {
+        type: "object",
+        properties: { id: { type: "integer", description: "Номер записи, например 7" } },
+        required: ["id"],
+      },
+    },
+    {
       name: "save_lesson",
       description:
         "Сохранить урок/вывод в общую базу знаний команды, чтобы другие агенты учились на этом опыте. Используй для важных выводов: что сработало, что нет, факты о рынке, клиентах, поставщиках.",
@@ -90,6 +115,14 @@ async function executeTool(
   depth: number,
 ): Promise<string> {
   switch (name) {
+    case "remember": {
+      const note = store.addNote(String(input.text ?? ""));
+      return `Записано в постоянную память (#${note.id}).`;
+    }
+    case "forget": {
+      const ok = store.deleteNote(Number(input.id));
+      return ok ? `Запись #${input.id} удалена из памяти.` : `Запись #${input.id} не найдена.`;
+    }
     case "save_lesson": {
       const lesson = store.addLesson(
         agent.name,

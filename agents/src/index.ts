@@ -19,7 +19,8 @@ const HELP = [
   "Как пользоваться:",
   "• Напишите вопрос в группу — подходящий агент ответит сам.",
   "• Обратитесь по имени: «Марк, придумай рекламу каминов».",
-  "• /tasks — открытые задачи, /cleartasks — закрыть все, /lessons — база знаний, /standup — планёрка.",
+  "• Скажите «запомните: ...» — и это станет постоянным правилом для всей команды (/notes — посмотреть).",
+  "• /tasks — задачи, /cleartasks — закрыть все, /lessons — уроки, /standup — планёрка.",
   "• Агенты сами советуются друг с другом и ставят вам задачи.",
 ].join("\n");
 
@@ -37,6 +38,15 @@ async function handleCommand(chatId: number, cmd: string): Promise<boolean> {
           ? "📋 Открытые задачи:\n" +
               tasks.map((t) => `#${t.id} [${t.priority}] ${t.title} — ${t.createdBy}`).join("\n")
           : "Открытых задач нет 🎉",
+      );
+      return true;
+    }
+    case "/notes": {
+      const notes = store.notes(60);
+      await publish(
+        notes.length
+          ? "🧠 Постоянная память команды:\n" + notes.map((n) => `#${n.id} ${n.text}`).join("\n")
+          : "Память пока пуста. Скажите агентам «запомните: ...» — и они запишут.",
       );
       return true;
     }
@@ -80,8 +90,10 @@ async function handleMessage(update: TgUpdate, botId: number, botUsername: strin
   const chatId = msg.chat.id;
   const chatKey = String(chatId);
 
-  // Работаем только в настроенной группе (если она задана).
-  if (config.telegramGroupId && chatKey !== config.telegramGroupId) return;
+  // Работаем в настроенной группе и в личных сообщениях любому пользователю.
+  // Чужие группы (куда бота могли добавить посторонние) игнорируем.
+  const isPrivateChat = msg.chat.type === "private";
+  if (config.telegramGroupId && chatKey !== config.telegramGroupId && !isPrivateChat) return;
 
   let text = msg.text.trim();
 

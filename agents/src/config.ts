@@ -44,7 +44,7 @@ export const config = {
   // Быстрая модель для диспетчера (кто должен ответить) — по умолчанию Haiku.
   routerModel: env("ROUTER_MODEL") || "claude-haiku-4-5",
   // Глубина "раздумий" агентов: low = быстро, medium/high = вдумчивее, но дольше.
-  agentEffort: (env("AGENT_EFFORT") || "low") as "low" | "medium" | "high",
+  agentEffort: (env("AGENT_EFFORT") || "medium") as "low" | "medium" | "high",
   timezone: safeTimezone(env("TIMEZONE") || "Europe/Rome"),
   // Утренняя планёрка по расписанию выключена по умолчанию (экономия токенов) —
   // проводится вручную командой /standup. Чтобы включить, задайте MORNING_HOUR=9.
