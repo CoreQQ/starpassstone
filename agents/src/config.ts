@@ -1,7 +1,14 @@
 import "dotenv/config";
 
+// При копировании переменных в панели хостинга легко прихватить лишний пробел
+// или перенос строки — из-за этого, например, часовой пояс " Europe/Rome"
+// считается несуществующим. Поэтому все значения аккуратно обрезаем.
+function env(name: string): string {
+  return (process.env[name] ?? "").trim();
+}
+
 function required(name: string): string {
-  const v = process.env[name];
+  const v = env(name);
   if (!v) {
     console.error(
       `❌ Не задана переменная окружения ${name}. Скопируйте .env.example в .env и заполните её.`,
@@ -20,9 +27,9 @@ function safeTimezone(tz: string): string {
     return tz;
   } catch {
     console.warn(
-      `⚠️ Часовой пояс "${tz}" недоступен в этой среде (нет данных ICU). ` +
-        `Использую UTC. Планёрка/отчёт будут по UTC. ` +
-        `Обычно чинится подключением full-icu (см. README).`,
+      `⚠️ Часовой пояс "${tz}" не распознан (опечатка в TIMEZONE или нет данных ICU). ` +
+        `Использую UTC — планёрка/отчёт будут по UTC. ` +
+        `Проверьте значение TIMEZONE, например: Europe/Rome`,
     );
     return "UTC";
   }
@@ -32,20 +39,20 @@ export const config = {
   anthropicApiKey: required("ANTHROPIC_API_KEY"),
   telegramBotToken: required("TELEGRAM_BOT_TOKEN"),
   // Если задан — бот работает только в этой группе (рекомендуется).
-  telegramGroupId: process.env.TELEGRAM_GROUP_ID || "",
-  model: process.env.AGENT_MODEL || "claude-sonnet-5",
+  telegramGroupId: env("TELEGRAM_GROUP_ID"),
+  model: env("AGENT_MODEL") || "claude-sonnet-5",
   // Быстрая модель для диспетчера (кто должен ответить) — по умолчанию Haiku.
-  routerModel: process.env.ROUTER_MODEL || "claude-haiku-4-5",
+  routerModel: env("ROUTER_MODEL") || "claude-haiku-4-5",
   // Глубина "раздумий" агентов: low = быстро, medium/high = вдумчивее, но дольше.
-  agentEffort: (process.env.AGENT_EFFORT || "low") as "low" | "medium" | "high",
-  timezone: safeTimezone(process.env.TIMEZONE || "Europe/Rome"),
+  agentEffort: (env("AGENT_EFFORT") || "low") as "low" | "medium" | "high",
+  timezone: safeTimezone(env("TIMEZONE") || "Europe/Rome"),
   // Утренняя планёрка по расписанию выключена по умолчанию (экономия токенов) —
   // проводится вручную командой /standup. Чтобы включить, задайте MORNING_HOUR=9.
-  morningHour: process.env.MORNING_HOUR ? Number(process.env.MORNING_HOUR) : -1,
-  eveningHour: Number(process.env.EVENING_HOUR ?? 19),
-  ownerName: process.env.OWNER_NAME || "Владелец",
+  morningHour: env("MORNING_HOUR") ? Number(env("MORNING_HOUR")) : -1,
+  eveningHour: env("EVENING_HOUR") ? Number(env("EVENING_HOUR")) : 19,
+  ownerName: env("OWNER_NAME") || "Владелец",
   businessProfile:
-    process.env.BUSINESS_PROFILE ||
+    env("BUSINESS_PROFILE") ||
     [
       "Компания Starpass Stone — натуральный камень в дизайне с 1998 года.",
       "Направления: камины (классические, электро, био), хаммамы, сауны, столешницы,",
