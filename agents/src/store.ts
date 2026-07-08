@@ -100,6 +100,19 @@ export const store = {
     return task;
   },
 
+  completeAllTasks(): number {
+    const db = load();
+    let n = 0;
+    for (const t of db.tasks) {
+      if (t.status === "открыта") {
+        t.status = "выполнена";
+        n++;
+      }
+    }
+    save(db);
+    return n;
+  },
+
   completeTask(id: number): Task | undefined {
     const db = load();
     const task = db.tasks.find((t) => t.id === id);

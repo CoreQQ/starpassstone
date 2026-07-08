@@ -19,7 +19,7 @@ const HELP = [
   "Как пользоваться:",
   "• Напишите вопрос в группу — подходящий агент ответит сам.",
   "• Обратитесь по имени: «Марк, придумай рекламу каминов».",
-  "• /tasks — открытые задачи, /lessons — база знаний, /standup — планёрка сейчас.",
+  "• /tasks — открытые задачи, /cleartasks — закрыть все, /lessons — база знаний, /standup — планёрка.",
   "• Агенты сами советуются друг с другом и ставят вам задачи.",
 ].join("\n");
 
@@ -40,6 +40,11 @@ async function handleCommand(chatId: number, cmd: string): Promise<boolean> {
       );
       return true;
     }
+    case "/cleartasks": {
+      const n = store.completeAllTasks();
+      await publish(n > 0 ? `🧹 Закрыл все открытые задачи: ${n} шт.` : "Открытых задач и так нет.");
+      return true;
+    }
     case "/lessons": {
       const lessons = store.recentLessons(20);
       await publish(
@@ -55,7 +60,7 @@ async function handleCommand(chatId: number, cmd: string): Promise<boolean> {
         await sendTyping(chatId);
         const answer = await runAgent(
           agent,
-          "Внеплановая планёрка по запросу владельца. Дай 2-3 конкретных предложения по своей зоне. Коротко.",
+          "Планёрка по запросу владельца. Скажи в паре предложений, что предлагаешь по своей части — по-человечески, без официоза. Задачи не создавай.",
           historyText(String(chatId)),
           publish,
         );
