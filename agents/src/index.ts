@@ -134,6 +134,14 @@ process.on("uncaughtException", (err) => {
   console.error("⚠️ Непойманное исключение (продолжаю работу):", err);
 });
 
+// Плановая остановка (редеплой на Railway) — выходим тихо, без npm error.
+for (const signal of ["SIGTERM", "SIGINT"] as const) {
+  process.on(signal, () => {
+    console.log(`👋 Получен ${signal} — останавливаюсь (плановый редеплой).`);
+    process.exit(0);
+  });
+}
+
 async function main(): Promise<void> {
   const me = await getMe();
   console.log(`✅ Бот @${me.username} запущен. Модель: ${config.model}`);
