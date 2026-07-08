@@ -153,13 +153,24 @@ export async function runAgent(
 
   const messages: Anthropic.MessageParam[] = [{ role: "user", content }];
 
+  // Системный промпт строим один раз на весь цикл (а не на каждую итерацию):
+  // стабильный префикс = кэш работает, повторные итерации цикла (поиск,
+  // инструменты) читают его по ~10% цены вместо полной.
+  const system: Anthropic.TextBlockParam[] = [
+    {
+      type: "text",
+      text: buildSystemPrompt(agent),
+      cache_control: { type: "ephemeral" },
+    },
+  ];
+
   for (let i = 0; i < 12; i++) {
     const response = await client.messages.create({
       model: config.model,
       max_tokens: 8000,
       thinking: { type: "adaptive" },
       output_config: { effort: config.agentEffort },
-      system: buildSystemPrompt(agent),
+      system,
       tools,
       messages,
     });
@@ -188,6 +199,22 @@ export async function runAgent(
           }
           results.push({ type: "tool_result", tool_use_id: block.id, content: result });
         }
+      }
+      // Кэш-брейкпоинт на последнем блоке: следующая итерация цикла читает
+      // всю накопленную историю (включая объёмные результаты поиска) из кэша.
+      // API разрешает максимум 4 метки на запрос, поэтому сначала снимаем
+      // метки с прошлых итераций — активной остаётся только последняя.
+      for (const m of messages) {
+        if (m.role === "user" && Array.isArray(m.content)) {
+          for (const block of m.content) {
+            if (block.type === "tool_result" && "cache_control" in block) {
+              delete block.cache_control;
+            }
+          }
+        }
+      }
+      if (results.length > 0) {
+        results[results.length - 1].cache_control = { type: "ephemeral" };
       }
       messages.push({ role: "user", content: results });
       continue;
