@@ -8,14 +8,15 @@
     "node": ">=20"
   },
   "scripts": {
-    "start": "tsx src/index.ts",
+    "start": "NODE_ICU_DATA=node_modules/full-icu tsx src/index.ts",
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "full-icu": "^1.6.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

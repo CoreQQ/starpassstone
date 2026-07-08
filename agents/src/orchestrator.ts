@@ -73,7 +73,7 @@ function customTools(): Anthropic.Messages.ToolUnion[] {
 function buildTools(agent: AgentDef): Anthropic.Messages.ToolUnion[] {
   const tools = customTools();
   if (agent.webSearch) {
-    tools.push({ type: "web_search_20260209", name: "web_search", max_uses: 5 });
+    tools.push({ type: "web_search_20260209", name: "web_search", max_uses: 3 });
   }
   return tools;
 }
@@ -158,6 +158,7 @@ export async function runAgent(
       model: config.model,
       max_tokens: 8000,
       thinking: { type: "adaptive" },
+      output_config: { effort: config.agentEffort },
       system: buildSystemPrompt(agent),
       tools,
       messages,
@@ -230,8 +231,8 @@ export async function routeMessage(
 
   const roles = AGENT_LIST.map((a) => `${a.id}: ${a.name} — ${a.role}`).join("\n");
   const response = await client.messages.create({
-    model: config.model,
-    max_tokens: 300,
+    model: config.routerModel,
+    max_tokens: 200,
     system: [
       "Ты — диспетчер команды AI-агентов в Telegram-группе бизнеса по натуральному камню.",
       "Реши, какой агент должен ответить на сообщение:",

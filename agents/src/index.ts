@@ -126,6 +126,14 @@ async function handleMessage(update: TgUpdate, botId: number, botUsername: strin
   }
 }
 
+// Страховка: никакая единичная ошибка не должна ронять весь сервис.
+process.on("unhandledRejection", (reason) => {
+  console.error("⚠️ Необработанная ошибка (продолжаю работу):", reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("⚠️ Непойманное исключение (продолжаю работу):", err);
+});
+
 async function main(): Promise<void> {
   const me = await getMe();
   console.log(`✅ Бот @${me.username} запущен. Модель: ${config.model}`);
