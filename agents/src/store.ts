@@ -44,6 +44,7 @@ interface Db {
   lessons: Lesson[];
   tasks: Task[];
   notes: Note[];
+  contacts: string[]; // email-адреса, которым мы писали (для фильтра входящих)
   history: Record<string, ChatMessage[]>; // по chat_id
   state: Record<string, string>; // служебное (последняя планёрка и т.п.)
   nextId: number;
@@ -65,10 +66,17 @@ function load(): Db {
     lessons: raw.lessons ?? [],
     tasks: raw.tasks ?? [],
     notes: raw.notes ?? [],
+    contacts: raw.contacts ?? [],
     history: raw.history ?? {},
     state: raw.state ?? {},
     nextId: raw.nextId ?? 1,
   };
+}
+
+// Из строки "Имя <addr@x.com>" или "addr@x.com" достаём чистый адрес.
+export function extractEmail(s: string): string {
+  const m = s.match(/<([^>]+)>/) || s.match(/([^\s<>]+@[^\s<>]+)/);
+  return (m?.[1] || "").trim().toLowerCase();
 }
 
 function save(db: Db): void {
@@ -95,6 +103,24 @@ export const store = {
 
   recentLessons(limit = 15): Lesson[] {
     return load().lessons.slice(-limit);
+  },
+
+  // Запоминаем адрес, которому написали (чтобы узнавать его ответы).
+  addContact(email: string): void {
+    const addr = extractEmail(email);
+    if (!addr) return;
+    const db = load();
+    if (!db.contacts.includes(addr)) {
+      db.contacts.push(addr);
+      db.contacts = db.contacts.slice(-500);
+      save(db);
+    }
+  },
+
+  isKnownContact(email: string): boolean {
+    const addr = extractEmail(email);
+    if (!addr) return false;
+    return load().contacts.includes(addr);
   },
 
   addNote(text: string): Note {

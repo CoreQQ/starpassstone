@@ -180,20 +180,39 @@ async function main(): Promise<void> {
   }
 
   let offset = 0;
-  // Основной цикл: длинный поллинг Telegram.
+  // Основной цикл: длинный поллинг Telegram. Обработку сообщений НЕ ждём —
+  // иначе долгий ответ (веб-поиск) заблокировал бы приём новых сообщений.
+  // Внутри одного чата сообщения всё равно идут по очереди (см. enqueue).
   for (;;) {
     try {
       const updates = await getUpdates(offset);
       for (const update of updates) {
         offset = update.update_id + 1;
-        // Обрабатываем последовательно, чтобы агенты не путали контекст.
-        await handleMessage(update, me.id, me.username);
+        enqueue(update, me.id, me.username);
       }
     } catch (err) {
       console.error("Ошибка цикла обновлений:", err);
       await new Promise((r) => setTimeout(r, 5000));
     }
   }
+}
+
+// Очередь на каждый чат: сообщения в одном чате обрабатываются по порядку,
+// но разные чаты и главный цикл поллинга друг друга не блокируют.
+const chatQueues = new Map<number, Promise<void>>();
+function enqueue(update: TgUpdate, botId: number, botUsername: string): void {
+  const chatId = update.message?.chat.id;
+  if (chatId === undefined) return;
+  const prev = chatQueues.get(chatId) ?? Promise.resolve();
+  const next = prev
+    .catch(() => {})
+    .then(() => handleMessage(update, botId, botUsername))
+    .catch((err) => console.error("Ошибка обработки сообщения:", err));
+  chatQueues.set(chatId, next);
+  // Убираем завершённую цепочку, чтобы Map не рос бесконечно.
+  next.finally(() => {
+    if (chatQueues.get(chatId) === next) chatQueues.delete(chatId);
+  });
 }
 
 main().catch((err) => {

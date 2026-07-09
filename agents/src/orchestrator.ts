@@ -236,12 +236,11 @@ async function executeTool(
         .join("\n---\n");
     }
     case "send_email": {
-      const result = await mail.sendEmail(
-        String(input.to ?? ""),
-        String(input.subject ?? ""),
-        String(input.body ?? ""),
-      );
-      await publish(`📧 ${agent.name}: отправила письмо на ${input.to} — «${input.subject}»`);
+      const to = String(input.to ?? "");
+      const result = await mail.sendEmail(to, String(input.subject ?? ""), String(input.body ?? ""));
+      // Запоминаем адресата — его ответ мы потом узнаем и покажем в группе.
+      store.addContact(to);
+      await publish(`📧 ${agent.name}: отправила письмо на ${to} — «${input.subject}»`);
       return result;
     }
     case "meta_list_campaigns":
@@ -453,42 +452,56 @@ export async function routeMessage(
     if (first === a.name.toLowerCase()) return a;
   }
 
+  // Если бот прямо адресован (упоминание, ответ боту, личка) — отвечаем всегда.
+  // Роутер лишь выбирает агента; при любом сбое отвечает Алина.
   const roles = AGENT_LIST.map((a) => `${a.id}: ${a.name} — ${a.role}`).join("\n");
-  const response = await client.messages.create({
-    model: config.routerModel,
-    max_tokens: 200,
-    system: [
-      "Ты — диспетчер команды AI-агентов в Telegram-группе бизнеса по натуральному камню.",
-      "Реши, какой агент должен ответить на сообщение:",
-      roles,
-      "",
-      "Правила:",
-      "- Вопросы про клиентов, ответы клиентам, скрипты, сделки → communicator.",
-      "- Реклама, таргет, креативы, соцсети, продвижение → marketer.",
-      "- Поиск объектов, заказов, партнёров, тендеров → scout.",
-      "- Поставщики, материалы, цены на камень, инструмент, логистика → supplier.",
-      addressedToBot
-        ? "- Сообщение адресовано боту, respond всегда true — выбери наиболее подходящего агента."
-        : "- Если сообщение — просто разговор людей между собой и не требует помощи агентов, respond=false, agent=none.",
-    ].join("\n"),
-    messages: [
-      {
-        role: "user",
-        content: `Контекст чата:\n${chatContext || "(пусто)"}\n\nСообщение: ${text}`,
-      },
-    ],
-    output_config: { format: { type: "json_schema", schema: ROUTER_SCHEMA } },
-  });
+  let response: Anthropic.Message;
+  try {
+    response = await client.messages.create({
+      model: config.routerModel,
+      max_tokens: 200,
+      system: [
+        "Ты — диспетчер команды AI-агентов в Telegram-группе бизнеса по натуральному камню.",
+        "Реши, какой агент должен ответить на сообщение:",
+        roles,
+        "",
+        "Правила:",
+        "- Вопросы про клиентов, ответы клиентам, скрипты, сделки → communicator.",
+        "- Реклама, таргет, креативы, соцсети, продвижение → marketer.",
+        "- Поиск объектов, заказов, партнёров, тендеров → scout.",
+        "- Поставщики, материалы, цены на камень, инструмент, логистика → supplier.",
+        "- Если непонятно, к кому именно, но человек явно чего-то хочет (вопрос,",
+        "  просьба, «?») — respond=true и выбери самого близкого агента. Лучше",
+        "  ответить, чем промолчать.",
+        addressedToBot
+          ? "- Сообщение адресовано боту напрямую: respond ВСЕГДА true, обязательно выбери агента (никогда none)."
+          : "- respond=false и agent=none ставь ТОЛЬКО если это явно реплика людей друг другу (болтовня, эмодзи, «ок», «спасибо») без вопроса и без просьбы к команде.",
+      ].join("\n"),
+      messages: [
+        {
+          role: "user",
+          content: `Контекст чата:\n${chatContext || "(пусто)"}\n\nСообщение: ${text}`,
+        },
+      ],
+      output_config: { format: { type: "json_schema", schema: ROUTER_SCHEMA } },
+    });
+  } catch (err) {
+    console.error("Роутер недоступен:", err);
+    // Не молчим, если к боту обратились напрямую.
+    return addressedToBot ? AGENTS.communicator : null;
+  }
 
   const raw = response.content.find(
     (b): b is Anthropic.TextBlock => b.type === "text",
   )?.text;
-  if (!raw) return null;
+  if (!raw) return addressedToBot ? AGENTS.communicator : null;
   try {
     const parsed = JSON.parse(raw) as { respond: boolean; agent: AgentId | "none" };
-    if (!parsed.respond || parsed.agent === "none") return null;
-    return AGENTS[parsed.agent] ?? null;
+    if (!parsed.respond || parsed.agent === "none") {
+      return addressedToBot ? AGENTS.communicator : null;
+    }
+    return AGENTS[parsed.agent] ?? (addressedToBot ? AGENTS.communicator : null);
   } catch {
-    return null;
+    return addressedToBot ? AGENTS.communicator : null;
   }
 }

@@ -65,18 +65,22 @@ async function eveningReport(publish: Publish): Promise<void> {
   await publish(lines.join("\n"));
 }
 
-// Новые входящие письма — публикуем в группу, чтобы команда их разобрала.
+// Новые входящие письма — публикуем в группу по выбранному фильтру.
 let mailBusy = false;
 async function checkMail(publish: Publish): Promise<void> {
   if (mailBusy) return; // не запускать проверку поверх предыдущей
   mailBusy = true;
   try {
-    const emails = await mail.fetchUnseen(10);
+    const emails = await mail.fetchUnseen(20);
     for (const e of emails) {
+      // Фильтр: в режиме "replies" показываем только ответы от тех,
+      // кому мы уже писали (рассылки и незнакомцы игнорируются).
+      if (config.mailNotify === "replies" && !store.isKnownContact(e.from)) continue;
+
       const preview = e.text ? `\n\n${e.text.slice(0, 400)}` : "";
       await publish(
-        `📬 Новое письмо\nОт: ${e.from}\nТема: ${e.subject}${preview}\n\n` +
-          `Алина, нужен ответ на это письмо?`,
+        `📬 Ответ от клиента\nОт: ${e.from}\nТема: ${e.subject}${preview}\n\n` +
+          `Алина, подготовь ответ?`,
       );
     }
   } catch (err) {
@@ -104,12 +108,15 @@ export function startScheduler(publish: Publish): void {
     }
   }, 60_000);
 
-  // Отдельный цикл проверки почты.
-  if (mail.mailReadConfigured() && config.mailPollMinutes > 0) {
+  // Отдельный цикл проверки почты (только если уведомления не выключены).
+  if (mail.mailReadConfigured() && config.mailPollMinutes > 0 && config.mailNotify !== "off") {
     setInterval(
       () => void checkMail(publish),
       Math.max(1, config.mailPollMinutes) * 60_000,
     );
-    console.log(`📬 Проверка входящих писем каждые ${config.mailPollMinutes} мин.`);
+    const what = config.mailNotify === "replies" ? "ответы клиентов" : "все входящие";
+    console.log(`📬 Проверка почты каждые ${config.mailPollMinutes} мин (${what}).`);
+  } else if (mail.mailReadConfigured()) {
+    console.log("📭 Уведомления о почте выключены (MAIL_NOTIFY=off).");
   }
 }

@@ -66,6 +66,11 @@ export const config = {
   mailFromName: env("MAIL_FROM_NAME") || "Starpass Stone",
   // Как часто проверять новые письма (минуты). 0 = не проверять.
   mailPollMinutes: env("MAIL_POLL_MINUTES") ? Number(env("MAIL_POLL_MINUTES")) : 3,
+  // О каких письмах уведомлять в группе:
+  //   replies (по умолчанию) — только ответы от адресов, которым мы писали;
+  //   off — не уведомлять ни о чём (рассылки не мешают);
+  //   all — обо всех входящих.
+  mailNotify: (env("MAIL_NOTIFY") || "replies") as "replies" | "off" | "all",
   businessProfile:
     env("BUSINESS_PROFILE") ||
     [
