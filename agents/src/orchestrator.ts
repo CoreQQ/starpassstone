@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { config } from "./config.js";
 import { AGENTS, AGENT_LIST, AgentDef, AgentId, buildSystemPrompt } from "./agents.js";
 import { store, Task } from "./store.js";
+import * as meta from "./meta.js";
 
 const client = new Anthropic({ apiKey: config.anthropicApiKey });
 
@@ -95,10 +96,88 @@ function customTools(): Anthropic.Messages.ToolUnion[] {
   ];
 }
 
+function metaTools(): Anthropic.Messages.ToolUnion[] {
+  return [
+    {
+      name: "meta_list_campaigns",
+      description:
+        "Показать рекламные кампании в кабинете Meta (Facebook/Instagram): названия, статусы, цели, бюджеты.",
+      input_schema: { type: "object", properties: {} },
+    },
+    {
+      name: "meta_campaign_insights",
+      description:
+        "Статистика кампаний Meta: расход, показы, клики, CPC, CPM. date_preset: today, yesterday, last_7d, last_30d, this_month.",
+      input_schema: {
+        type: "object",
+        properties: {
+          date_preset: { type: "string", description: "Период, по умолчанию last_7d" },
+        },
+      },
+    },
+    {
+      name: "meta_create_campaign",
+      description:
+        "Создать рекламную кампанию в Meta. Кампания создаётся НА ПАУЗЕ (денег не тратит). Вызывать только после явного согласия владельца в текущем сообщении.",
+      input_schema: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Название кампании" },
+          objective: {
+            type: "string",
+            enum: [
+              "OUTCOME_LEADS",
+              "OUTCOME_TRAFFIC",
+              "OUTCOME_AWARENESS",
+              "OUTCOME_ENGAGEMENT",
+              "OUTCOME_SALES",
+            ],
+            description: "Цель кампании",
+          },
+          daily_budget_eur: {
+            type: "number",
+            description: "Дневной бюджет в евро (целое число), опционально",
+          },
+        },
+        required: ["name", "objective"],
+      },
+    },
+    {
+      name: "meta_set_campaign_status",
+      description:
+        "Включить (ACTIVE) или поставить на паузу (PAUSED) кампанию Meta. Включение тратит деньги — только после явного «да» владельца в текущем сообщении.",
+      input_schema: {
+        type: "object",
+        properties: {
+          campaign_id: { type: "string" },
+          status: { type: "string", enum: ["ACTIVE", "PAUSED"] },
+        },
+        required: ["campaign_id", "status"],
+      },
+    },
+    {
+      name: "meta_set_daily_budget",
+      description:
+        "Изменить дневной бюджет кампании Meta (в евро). Только после явного согласия владельца в текущем сообщении.",
+      input_schema: {
+        type: "object",
+        properties: {
+          campaign_id: { type: "string" },
+          daily_budget_eur: { type: "number" },
+        },
+        required: ["campaign_id", "daily_budget_eur"],
+      },
+    },
+  ];
+}
+
 function buildTools(agent: AgentDef): Anthropic.Messages.ToolUnion[] {
   const tools = customTools();
   if (agent.webSearch) {
     tools.push({ type: "web_search_20260209", name: "web_search", max_uses: 3 });
+  }
+  if (agent.id === "marketer" && meta.metaConfigured()) {
+    tools.push(...metaTools());
   }
   return tools;
 }
@@ -115,6 +194,41 @@ async function executeTool(
   depth: number,
 ): Promise<string> {
   switch (name) {
+    case "meta_list_campaigns":
+      return meta.listCampaigns();
+    case "meta_campaign_insights":
+      return meta.campaignInsights(String(input.date_preset ?? "last_7d"));
+    case "meta_create_campaign": {
+      const budgetEur = Number(input.daily_budget_eur ?? 0);
+      const result = await meta.createCampaign(
+        String(input.name ?? ""),
+        String(input.objective ?? "OUTCOME_LEADS"),
+        budgetEur > 0 ? Math.round(budgetEur * 100) : undefined,
+      );
+      await publish(`📣 ${agent.name}: создал кампанию «${input.name}» (на паузе).`);
+      return result;
+    }
+    case "meta_set_campaign_status": {
+      const result = await meta.setCampaignStatus(
+        String(input.campaign_id ?? ""),
+        input.status === "ACTIVE" ? "ACTIVE" : "PAUSED",
+      );
+      await publish(
+        `📣 ${agent.name}: кампания ${input.campaign_id} → ${
+          input.status === "ACTIVE" ? "ВКЛЮЧЕНА ▶️" : "на паузе ⏸"
+        }`,
+      );
+      return result;
+    }
+    case "meta_set_daily_budget": {
+      const eur = Number(input.daily_budget_eur ?? 0);
+      const result = await meta.setCampaignDailyBudget(
+        String(input.campaign_id ?? ""),
+        Math.round(eur * 100),
+      );
+      await publish(`📣 ${agent.name}: бюджет кампании ${input.campaign_id} → €${eur}/день`);
+      return result;
+    }
     case "remember": {
       const note = store.addNote(String(input.text ?? ""));
       return `Записано в постоянную память (#${note.id}).`;

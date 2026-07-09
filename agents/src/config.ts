@@ -51,6 +51,11 @@ export const config = {
   morningHour: env("MORNING_HOUR") ? Number(env("MORNING_HOUR")) : -1,
   eveningHour: env("EVENING_HOUR") ? Number(env("EVENING_HOUR")) : 19,
   ownerName: env("OWNER_NAME") || "Владелец",
+  // Доступ к рекламному кабинету Meta (Facebook/Instagram) — опционально.
+  // Когда заданы, Марк умеет управлять рекламой через официальный Marketing API.
+  metaAccessToken: env("META_ACCESS_TOKEN"),
+  metaAdAccountId: env("META_AD_ACCOUNT_ID"),
+  metaApiVersion: env("META_API_VERSION") || "v23.0",
   businessProfile:
     env("BUSINESS_PROFILE") ||
     [
