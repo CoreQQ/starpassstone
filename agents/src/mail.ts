@@ -21,19 +21,56 @@ function getTransporter(): nodemailer.Transporter {
       port: config.smtpPort,
       secure: config.smtpPort === 465, // 465 = SSL, 587 = STARTTLS
       auth: { user: config.mailUser, pass: config.mailPassword },
+      // Явные таймауты, чтобы не висеть минутами и давать понятную ошибку.
+      connectionTimeout: 12_000,
+      greetingTimeout: 12_000,
+      socketTimeout: 20_000,
     });
   }
   return transporter;
 }
 
+// Превращаем техническую ошибку почты в понятное объяснение для команды.
+function explainMailError(err: unknown): string {
+  const e = err as { code?: string; responseCode?: number; message?: string };
+  const code = e.code || "";
+  if (code === "EAUTH" || e.responseCode === 535) {
+    return (
+      "почта не приняла логин/пароль. Для Gmail нужен ПАРОЛЬ ПРИЛОЖЕНИЯ (16 букв с " +
+      "myaccount.google.com/apppasswords), а не обычный пароль. Проверьте MAIL_PASSWORD на Railway."
+    );
+  }
+  if (code === "ETIMEDOUT" || code === "ESOCKET" || code === "ECONNECTION") {
+    return (
+      "не удалось соединиться с SMTP-сервером (таймаут). Проверьте SMTP_HOST и SMTP_PORT " +
+      "на Railway (Gmail: smtp.gmail.com, порт 465). Если не помогает — попробуйте порт 587."
+    );
+  }
+  return `техническая ошибка почты: ${e.message || String(err)}`;
+}
+
+export async function verifyMail(): Promise<string> {
+  try {
+    await getTransporter().verify();
+    return `✅ Почта подключена: ${config.mailUser} (SMTP ${config.smtpHost}:${config.smtpPort}).`;
+  } catch (err) {
+    return `❌ Почта не работает — ${explainMailError(err)}`;
+  }
+}
+
 export async function sendEmail(to: string, subject: string, body: string): Promise<string> {
-  const info = await getTransporter().sendMail({
-    from: `"${config.mailFromName}" <${config.mailUser}>`,
-    to,
-    subject,
-    text: body,
-  });
-  return `Письмо отправлено на ${to} (id: ${info.messageId}).`;
+  try {
+    const info = await getTransporter().sendMail({
+      from: `"${config.mailFromName}" <${config.mailUser}>`,
+      to,
+      subject,
+      text: body,
+    });
+    return `Письмо отправлено на ${to} (id: ${info.messageId}).`;
+  } catch (err) {
+    // Возвращаем понятную причину — агент перескажет её владельцу.
+    return `НЕ ОТПРАВЛЕНО — ${explainMailError(err)}`;
+  }
 }
 
 export interface IncomingEmail {

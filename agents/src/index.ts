@@ -4,6 +4,7 @@ import { getMe, getUpdates, sendMessage, sendTyping, TgUpdate } from "./telegram
 import { routeMessage, runAgent } from "./orchestrator.js";
 import { startScheduler } from "./scheduler.js";
 import { store } from "./store.js";
+import * as mail from "./mail.js";
 
 function historyText(chatId: string): string {
   return store
@@ -21,6 +22,7 @@ const HELP = [
   "• Обратитесь по имени: «Марк, придумай рекламу каминов».",
   "• Скажите «запомните: ...» — и это станет постоянным правилом для всей команды (/notes — посмотреть).",
   "• /tasks — задачи, /cleartasks — закрыть все, /lessons — уроки, /standup — планёрка.",
+  "• /mailtest — проверить подключение почты.",
   "• Агенты сами советуются друг с другом и ставят вам задачи.",
 ].join("\n");
 
@@ -39,6 +41,17 @@ async function handleCommand(chatId: number, cmd: string): Promise<boolean> {
               tasks.map((t) => `#${t.id} [${t.priority}] ${t.title} — ${t.createdBy}`).join("\n")
           : "Открытых задач нет 🎉",
       );
+      return true;
+    }
+    case "/mailtest": {
+      if (!mail.mailSendConfigured()) {
+        await publish(
+          "Почта не настроена. Добавьте на Railway переменные MAIL_USER, MAIL_PASSWORD, SMTP_HOST, IMAP_HOST (см. .env.example).",
+        );
+        return true;
+      }
+      await publish("Проверяю подключение к почте…");
+      await publish(await mail.verifyMail());
       return true;
     }
     case "/notes": {
