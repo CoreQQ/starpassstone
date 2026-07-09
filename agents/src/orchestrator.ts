@@ -3,6 +3,7 @@ import { config } from "./config.js";
 import { AGENTS, AGENT_LIST, AgentDef, AgentId, buildSystemPrompt } from "./agents.js";
 import { store, Task } from "./store.js";
 import * as meta from "./meta.js";
+import * as mail from "./mail.js";
 
 const client = new Anthropic({ apiKey: config.anthropicApiKey });
 
@@ -171,6 +172,35 @@ function metaTools(): Anthropic.Messages.ToolUnion[] {
   ];
 }
 
+function mailTools(): Anthropic.Messages.ToolUnion[] {
+  const tools: Anthropic.Messages.ToolUnion[] = [];
+  if (mail.mailReadConfigured()) {
+    tools.push({
+      name: "check_inbox",
+      description:
+        "Посмотреть последние письма в почтовом ящике компании (от кого, тема, дата). Использовать, когда нужно проверить входящую почту.",
+      input_schema: { type: "object", properties: {} },
+    });
+  }
+  if (mail.mailSendConfigured()) {
+    tools.push({
+      name: "send_email",
+      description:
+        "Отправить письмо клиенту от имени компании. Пиши на языке клиента. Перед отправкой ВАЖНО показать текст владельцу и отправлять только после его «да» — кроме случая, когда владелец прямо попросил отправить сразу.",
+      input_schema: {
+        type: "object",
+        properties: {
+          to: { type: "string", description: "Email получателя" },
+          subject: { type: "string", description: "Тема письма" },
+          body: { type: "string", description: "Текст письма" },
+        },
+        required: ["to", "subject", "body"],
+      },
+    });
+  }
+  return tools;
+}
+
 function buildTools(agent: AgentDef): Anthropic.Messages.ToolUnion[] {
   const tools = customTools();
   if (agent.webSearch) {
@@ -178,6 +208,10 @@ function buildTools(agent: AgentDef): Anthropic.Messages.ToolUnion[] {
   }
   if (agent.id === "marketer" && meta.metaConfigured()) {
     tools.push(...metaTools());
+  }
+  // Почта — у Алины (общение с клиентами).
+  if (agent.id === "communicator") {
+    tools.push(...mailTools());
   }
   return tools;
 }
@@ -194,6 +228,22 @@ async function executeTool(
   depth: number,
 ): Promise<string> {
   switch (name) {
+    case "check_inbox": {
+      const emails = await mail.fetchRecent(8);
+      if (!emails.length) return "Входящих писем нет.";
+      return emails
+        .map((e) => `От: ${e.from}\nТема: ${e.subject}\nДата: ${e.date}`)
+        .join("\n---\n");
+    }
+    case "send_email": {
+      const result = await mail.sendEmail(
+        String(input.to ?? ""),
+        String(input.subject ?? ""),
+        String(input.body ?? ""),
+      );
+      await publish(`📧 ${agent.name}: отправила письмо на ${input.to} — «${input.subject}»`);
+      return result;
+    }
     case "meta_list_campaigns":
       return meta.listCampaigns();
     case "meta_campaign_insights":

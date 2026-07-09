@@ -16,10 +16,13 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",
     "dotenv": "^16.4.5",
-    "full-icu": "^1.6.0"
+    "full-icu": "^1.6.0",
+    "imapflow": "^1.4.6",
+    "nodemailer": "^9.0.3"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/nodemailer": "^8.0.1",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0"
   }

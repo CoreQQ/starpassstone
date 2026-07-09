@@ -56,6 +56,16 @@ export const config = {
   metaAccessToken: env("META_ACCESS_TOKEN"),
   metaAdAccountId: env("META_AD_ACCOUNT_ID"),
   metaApiVersion: env("META_API_VERSION") || "v23.0",
+  // Почта — опционально. SMTP для отправки, IMAP для чтения входящих.
+  mailUser: env("MAIL_USER"), // адрес ящика, он же логин
+  mailPassword: env("MAIL_PASSWORD"), // пароль приложения
+  smtpHost: env("SMTP_HOST"),
+  smtpPort: env("SMTP_PORT") ? Number(env("SMTP_PORT")) : 465,
+  imapHost: env("IMAP_HOST"),
+  imapPort: env("IMAP_PORT") ? Number(env("IMAP_PORT")) : 993,
+  mailFromName: env("MAIL_FROM_NAME") || "Starpass Stone",
+  // Как часто проверять новые письма (минуты). 0 = не проверять.
+  mailPollMinutes: env("MAIL_POLL_MINUTES") ? Number(env("MAIL_POLL_MINUTES")) : 3,
   businessProfile:
     env("BUSINESS_PROFILE") ||
     [

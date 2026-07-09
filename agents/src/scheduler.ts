@@ -2,6 +2,7 @@ import { config } from "./config.js";
 import { AGENT_LIST } from "./agents.js";
 import { runAgent, Publish } from "./orchestrator.js";
 import { store } from "./store.js";
+import * as mail from "./mail.js";
 
 function nowInTz(): { date: string; hour: number } {
   const fmt = new Intl.DateTimeFormat("en-CA", {
@@ -64,6 +65,27 @@ async function eveningReport(publish: Publish): Promise<void> {
   await publish(lines.join("\n"));
 }
 
+// Новые входящие письма — публикуем в группу, чтобы команда их разобрала.
+let mailBusy = false;
+async function checkMail(publish: Publish): Promise<void> {
+  if (mailBusy) return; // не запускать проверку поверх предыдущей
+  mailBusy = true;
+  try {
+    const emails = await mail.fetchUnseen(10);
+    for (const e of emails) {
+      const preview = e.text ? `\n\n${e.text.slice(0, 400)}` : "";
+      await publish(
+        `📬 Новое письмо\nОт: ${e.from}\nТема: ${e.subject}${preview}\n\n` +
+          `Алина, нужен ответ на это письмо?`,
+      );
+    }
+  } catch (err) {
+    console.error("Ошибка проверки почты:", err);
+  } finally {
+    mailBusy = false;
+  }
+}
+
 // Проверяем раз в минуту, не пора ли провести планёрку/отчёт.
 export function startScheduler(publish: Publish): void {
   setInterval(async () => {
@@ -81,4 +103,13 @@ export function startScheduler(publish: Publish): void {
       console.error("Ошибка планировщика:", err);
     }
   }, 60_000);
+
+  // Отдельный цикл проверки почты.
+  if (mail.mailReadConfigured() && config.mailPollMinutes > 0) {
+    setInterval(
+      () => void checkMail(publish),
+      Math.max(1, config.mailPollMinutes) * 60_000,
+    );
+    console.log(`📬 Проверка входящих писем каждые ${config.mailPollMinutes} мин.`);
+  }
 }
