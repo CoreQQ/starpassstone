@@ -5,8 +5,12 @@ import { config } from "./config.js";
 // Почта: SMTP (отправка) + IMAP (чтение входящих).
 // Всё включается только когда заданы MAIL_USER/MAIL_PASSWORD/SMTP_HOST/IMAP_HOST.
 
+export function brevoConfigured(): boolean {
+  return Boolean(config.brevoApiKey && config.mailUser);
+}
+
 export function mailSendConfigured(): boolean {
-  return Boolean(config.mailUser && config.mailPassword && config.smtpHost);
+  return brevoConfigured() || Boolean(config.mailUser && config.mailPassword && config.smtpHost);
 }
 
 export function mailReadConfigured(): boolean {
@@ -49,7 +53,56 @@ function explainMailError(err: unknown): string {
   return `техническая ошибка почты: ${e.message || String(err)}`;
 }
 
+// Отправка через Brevo (HTTP API) — не блокируется хостингами, в отличие от SMTP.
+async function brevoSend(to: string, subject: string, body: string): Promise<string> {
+  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "api-key": config.brevoApiKey,
+      "content-type": "application/json",
+      accept: "application/json",
+    },
+    body: JSON.stringify({
+      sender: { name: config.mailFromName, email: config.mailUser },
+      to: [{ email: to }],
+      subject,
+      textContent: body,
+    }),
+  });
+  if (res.status === 201) {
+    return `Письмо отправлено на ${to}.`;
+  }
+  const text = (await res.text()).slice(0, 400);
+  // Частая ошибка: адрес-отправитель не подтверждён в Brevo.
+  if (res.status === 400 && /sender/i.test(text)) {
+    return (
+      `НЕ ОТПРАВЛЕНО — адрес-отправитель ${config.mailUser} не подтверждён в Brevo. ` +
+      `Зайдите в Brevo → Senders и подтвердите его по ссылке из письма.`
+    );
+  }
+  if (res.status === 401) {
+    return "НЕ ОТПРАВЛЕНО — неверный BREVO_API_KEY. Проверьте ключ на Railway.";
+  }
+  return `НЕ ОТПРАВЛЕНО — Brevo вернул ошибку (${res.status}): ${text}`;
+}
+
+async function brevoVerify(): Promise<string> {
+  try {
+    const res = await fetch("https://api.brevo.com/v3/account", {
+      headers: { "api-key": config.brevoApiKey, accept: "application/json" },
+    });
+    if (res.ok) {
+      return `✅ Почта готова (Brevo). Отправитель: ${config.mailUser}. Не забудьте подтвердить этот адрес в Brevo → Senders.`;
+    }
+    if (res.status === 401) return "❌ Неверный BREVO_API_KEY — проверьте ключ на Railway.";
+    return `❌ Brevo вернул ошибку ${res.status}.`;
+  } catch (err) {
+    return `❌ Не удалось связаться с Brevo: ${(err as Error).message}`;
+  }
+}
+
 export async function verifyMail(): Promise<string> {
+  if (brevoConfigured()) return brevoVerify();
   try {
     await getTransporter().verify();
     return `✅ Почта подключена: ${config.mailUser} (SMTP ${config.smtpHost}:${config.smtpPort}).`;
@@ -59,6 +112,13 @@ export async function verifyMail(): Promise<string> {
 }
 
 export async function sendEmail(to: string, subject: string, body: string): Promise<string> {
+  if (brevoConfigured()) {
+    try {
+      return await brevoSend(to, subject, body);
+    } catch (err) {
+      return `НЕ ОТПРАВЛЕНО — ошибка Brevo: ${(err as Error).message}`;
+    }
+  }
   try {
     const info = await getTransporter().sendMail({
       from: `"${config.mailFromName}" <${config.mailUser}>`,

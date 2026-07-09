@@ -56,9 +56,10 @@ export const config = {
   metaAccessToken: env("META_ACCESS_TOKEN"),
   metaAdAccountId: env("META_AD_ACCOUNT_ID"),
   metaApiVersion: env("META_API_VERSION") || "v23.0",
-  // Почта — опционально. SMTP для отправки, IMAP для чтения входящих.
-  mailUser: env("MAIL_USER"), // адрес ящика, он же логин
-  mailPassword: env("MAIL_PASSWORD"), // пароль приложения
+  // Почта — опционально. Отправка: Brevo (HTTP, работает на Railway) или SMTP.
+  brevoApiKey: env("BREVO_API_KEY"),
+  mailUser: env("MAIL_USER"), // адрес-отправитель (в Brevo — подтверждённый sender)
+  mailPassword: env("MAIL_PASSWORD"), // пароль приложения (только для SMTP)
   smtpHost: env("SMTP_HOST"),
   smtpPort: env("SMTP_PORT") ? Number(env("SMTP_PORT")) : 465,
   imapHost: env("IMAP_HOST"),
