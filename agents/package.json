@@ -1,0 +1,29 @@
+{
+  "name": "starpass-agents",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI-агенты для бизнеса по работе с камнем: общаются в Telegram-группе, учатся друг у друга и ставят задачи владельцу",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "NODE_ICU_DATA=node_modules/full-icu tsx src/index.ts",
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.110.0",
+    "dotenv": "^16.4.5",
+    "full-icu": "^1.6.0",
+    "imapflow": "^1.4.6",
+    "nodemailer": "^9.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/nodemailer": "^8.0.1",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

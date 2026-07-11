@@ -18,6 +18,9 @@ web/data/
 web/uploads/*
 !web/uploads/.gitkeep
 
+# AI agents runtime memory
+agents/data/
+
 # misc
 *.log
 .DS_Store
