@@ -87,6 +87,12 @@ async function brevoSend(to: string, subject: string, body: string): Promise<str
 }
 
 async function brevoVerify(): Promise<string> {
+  if (!config.brevoApiKey.startsWith("xkeysib-")) {
+    return (
+      "❌ BREVO_API_KEY выглядит неправильно — настоящий API-ключ Brevo начинается с «xkeysib-». " +
+      "Похоже, скопирован SMTP-ключ или что-то не то. Возьмите ключ на app.brevo.com/settings/keys/api (вкладка API Keys)."
+    );
+  }
   try {
     const res = await fetch("https://api.brevo.com/v3/account", {
       headers: { "api-key": config.brevoApiKey, accept: "application/json" },
