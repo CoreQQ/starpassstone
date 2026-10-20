@@ -40,24 +40,14 @@ async function morningStandup(publish: Publish): Promise<void> {
   }
 }
 
-// Вечерний отчёт: без вызовов Claude — сводка задач и уроков за день.
+// Вечерний отчёт: без вызовов Claude — напоминание об открытых задачах.
+// Если задач нет — молчим, чтобы не слать пустое «Открытых задач: 0» каждый день.
 async function eveningReport(publish: Publish): Promise<void> {
   const tasks = store.openTasks(30);
-  const today = nowInTz().date;
-  const lessonsToday = store
-    .recentLessons(50)
-    .filter((l) => l.ts.startsWith(today));
-
-  const lines = ["🌙 Вечерний отчёт", ""];
-  lines.push(`Открытых задач: ${tasks.length}`);
+  if (tasks.length === 0) return;
+  const lines = [`🌙 Открытые задачи (${tasks.length}):`];
   for (const t of tasks) {
-    lines.push(`  #${t.id} [${t.priority}] ${t.title} — ${t.createdBy}`);
-  }
-  if (lessonsToday.length) {
-    lines.push("", "Новые уроки в базе знаний за сегодня:");
-    for (const l of lessonsToday) {
-      lines.push(`  • [${l.agent}] ${l.lesson}`);
-    }
+    lines.push(`#${t.id} [${t.priority}] ${t.title}`);
   }
   await publish(lines.join("\n"));
 }

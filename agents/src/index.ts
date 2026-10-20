@@ -1,7 +1,8 @@
 import { config } from "./config.js";
 import { ASSISTANT } from "./agents.js";
 import { getMe, getUpdates, sendMessage, sendTyping, TgUpdate } from "./telegram.js";
-import { runAgent, shouldRespond } from "./orchestrator.js";
+import { runAgent } from "./orchestrator.js";
+import { isChatter } from "./filter.js";
 import { startScheduler } from "./scheduler.js";
 import { store } from "./store.js";
 import * as mail from "./mail.js";
@@ -135,9 +136,16 @@ async function handleMessage(update: TgUpdate, botId: number, botUsername: strin
     ts: new Date().toISOString(),
   });
 
-  // Адресовано напрямую — отвечаем всегда. Иначе (в группе) — только если человек
-  // чего-то ждёт, чтобы не встревать в разговоры людей между собой.
-  if (!addressedToBot && !(await shouldRespond(text, context))) return;
+  // Адресовано напрямую — отвечаем всегда. Иначе (в группе) отвечаем на всё,
+  // кроме «ок/спасибо/эмодзи» и ответов одного человека другому.
+  const replyToOtherHuman =
+    !!msg.reply_to_message?.from &&
+    !msg.reply_to_message.from.is_bot &&
+    msg.reply_to_message.from.id !== botId;
+  if (!addressedToBot && isChatter(text, replyToOtherHuman)) {
+    console.log(`Пропускаю реплику (не к ассистенту): «${text.slice(0, 60)}»`);
+    return;
+  }
 
   const agent = ASSISTANT;
   const publish = (t: string) => sendMessage(chatId, t);
@@ -181,7 +189,9 @@ for (const signal of ["SIGTERM", "SIGINT"] as const) {
 
 async function main(): Promise<void> {
   const me = await getMe();
-  console.log(`✅ Бот @${me.username} запущен. Модель: ${config.model}`);
+  console.log(
+    `✅ Бот @${me.username} запущен. Модель: ${config.model} (единый ассистент Starpass)`,
+  );
   console.log(
     config.telegramGroupId
       ? `Работаю только в группе ${config.telegramGroupId}`

@@ -41,8 +41,6 @@ export const config = {
   // Если задан — бот работает только в этой группе (рекомендуется).
   telegramGroupId: env("TELEGRAM_GROUP_ID"),
   model: env("AGENT_MODEL") || "claude-sonnet-5",
-  // Быстрая модель для диспетчера (кто должен ответить) — по умолчанию Haiku.
-  routerModel: env("ROUTER_MODEL") || "claude-haiku-4-5",
   // Глубина "раздумий" агентов: low = быстро, medium/high = вдумчивее, но дольше.
   agentEffort: (env("AGENT_EFFORT") || "medium") as "low" | "medium" | "high",
   timezone: safeTimezone(env("TIMEZONE") || "Europe/Rome"),
