@@ -1,5 +1,5 @@
 import { config } from "./config.js";
-import { AGENT_LIST } from "./agents.js";
+import { ASSISTANT } from "./agents.js";
 import { runAgent, Publish } from "./orchestrator.js";
 import { store } from "./store.js";
 import * as mail from "./mail.js";
@@ -21,25 +21,22 @@ function nowInTz(): { date: string; hour: number } {
   };
 }
 
-// Утренняя планёрка: каждый агент коротко говорит, что предлагает сделать сегодня.
+// Утренняя планёрка: ассистент предлагает план на день по всем направлениям.
 async function morningStandup(publish: Publish): Promise<void> {
-  await publish("☀️ Утренняя планёрка команды");
-  for (const agent of AGENT_LIST) {
-    try {
-      const answer = await runAgent(
-        agent,
-        [
-          "Утренняя планёрка. Скажи в паре предложений, что предлагаешь сегодня по своей части —",
-          "как живой человек на летучке, без официоза и нумерованных пунктов.",
-          "Задачи не создавай — просто поделись мыслями.",
-        ].join(" "),
-        "",
-        publish,
-      );
-      await publish(`${agent.emoji} ${agent.name}:\n${answer}`);
-    } catch (err) {
-      console.error(`Планёрка: ошибка у агента ${agent.name}:`, err);
-    }
+  try {
+    const answer = await runAgent(
+      ASSISTANT,
+      [
+        "Утро. Предложи 2–3 самых полезных шага на сегодня по всем направлениям бизнеса",
+        "(клиенты, реклама, объекты, снабжение) с учётом памяти и открытых задач.",
+        "По-человечески, без официоза. Задачи не создавай.",
+      ].join(" "),
+      "",
+      publish,
+    );
+    await publish(`☀️ План на сегодня\n\n${answer}`);
+  } catch (err) {
+    console.error("Планёрка: ошибка ассистента:", err);
   }
 }
 
@@ -80,7 +77,7 @@ async function checkMail(publish: Publish): Promise<void> {
       const preview = e.text ? `\n\n${e.text.slice(0, 400)}` : "";
       await publish(
         `📬 Ответ от клиента\nОт: ${e.from}\nТема: ${e.subject}${preview}\n\n` +
-          `Алина, подготовь ответ?`,
+          `Ответьте «да, ответь…» — и я подготовлю письмо.`,
       );
     }
   } catch (err) {

@@ -1,7 +1,7 @@
 import { config } from "./config.js";
-import { AGENT_LIST } from "./agents.js";
+import { ASSISTANT } from "./agents.js";
 import { getMe, getUpdates, sendMessage, sendTyping, TgUpdate } from "./telegram.js";
-import { routeMessage, runAgent } from "./orchestrator.js";
+import { runAgent, shouldRespond } from "./orchestrator.js";
 import { startScheduler } from "./scheduler.js";
 import { store } from "./store.js";
 import * as mail from "./mail.js";
@@ -13,18 +13,28 @@ function historyText(chatId: string): string {
     .join("\n");
 }
 
+// Сообщение считается адресованным ассистенту, если начинается с одного из этих слов.
+const NAME_TRIGGERS = ["starpass", "старпасс", "бот", "ассистент"];
+
 const HELP = [
-  "🤖 Команда AI-агентов Starpass Stone:",
-  ...AGENT_LIST.map((a) => `${a.emoji} ${a.name} — ${a.role}`),
+  "🤖 Starpass — ваш AI-ассистент. Один, но делает всё:",
+  "клиенты и продажи, реклама, поиск объектов, снабжение, почта и расчёты.",
   "",
   "Как пользоваться:",
-  "• Напишите вопрос в группу — подходящий агент ответит сам.",
-  "• Обратитесь по имени: «Марк, придумай рекламу каминов».",
-  "• Скажите «запомните: ...» — и это станет постоянным правилом для всей команды (/notes — посмотреть).",
-  "• /tasks — задачи, /cleartasks — закрыть все, /lessons — уроки, /standup — планёрка.",
+  "• Просто напишите задачу в группу или в личку — ассистент возьмёт её в работу.",
+  "• Он сам ищет в интернете и считает кодом (сметы, площади, цены, конвертации).",
+  "• Скажите «запомни: ...» — это станет постоянным правилом (/notes — посмотреть).",
+  "• /tasks — задачи, /cleartasks — закрыть все, /standup — план на сегодня.",
   "• /mailtest — проверить подключение почты.",
-  "• Агенты сами советуются друг с другом и ставят вам задачи.",
 ].join("\n");
+
+// Telegram гасит «печатает…» через ~5 секунд. Пока ассистент работает
+// (поиск, расчёты), обновляем индикатор, чтобы было видно: он не завис.
+function keepTyping(chatId: number): () => void {
+  void sendTyping(chatId);
+  const timer = setInterval(() => void sendTyping(chatId), 4500);
+  return () => clearInterval(timer);
+}
 
 async function handleCommand(chatId: number, cmd: string): Promise<boolean> {
   const publish = (text: string) => sendMessage(chatId, text);
@@ -55,11 +65,11 @@ async function handleCommand(chatId: number, cmd: string): Promise<boolean> {
       return true;
     }
     case "/notes": {
-      const notes = store.notes(60);
+      const notes = store.notes(80);
       await publish(
         notes.length
-          ? "🧠 Постоянная память команды:\n" + notes.map((n) => `#${n.id} ${n.text}`).join("\n")
-          : "Память пока пуста. Скажите агентам «запомните: ...» — и они запишут.",
+          ? "🧠 Постоянная память:\n" + notes.map((n) => `#${n.id} ${n.text}`).join("\n")
+          : "Память пока пуста. Скажите «запомни: ...» — и я запишу.",
       );
       return true;
     }
@@ -68,26 +78,18 @@ async function handleCommand(chatId: number, cmd: string): Promise<boolean> {
       await publish(n > 0 ? `🧹 Закрыл все открытые задачи: ${n} шт.` : "Открытых задач и так нет.");
       return true;
     }
-    case "/lessons": {
-      const lessons = store.recentLessons(20);
-      await publish(
-        lessons.length
-          ? "🧠 База знаний (последние уроки):\n" +
-              lessons.map((l) => `• [${l.agent}] ${l.lesson}`).join("\n")
-          : "База знаний пока пуста.",
-      );
-      return true;
-    }
     case "/standup": {
-      for (const agent of AGENT_LIST) {
-        await sendTyping(chatId);
+      const stop = keepTyping(chatId);
+      try {
         const answer = await runAgent(
-          agent,
-          "Планёрка по запросу владельца. Скажи в паре предложений, что предлагаешь по своей части — по-человечески, без официоза. Задачи не создавай.",
+          ASSISTANT,
+          "Владелец просит план на сегодня. Предложи 2–3 самых полезных шага для бизнеса по всем направлениям (клиенты, реклама, объекты, снабжение) с учётом памяти и открытых задач. По-человечески, без официоза. Задачи не создавай.",
           historyText(String(chatId)),
           publish,
         );
-        await publish(`${agent.emoji} ${agent.name}:\n${answer}`);
+        await publish(answer);
+      } finally {
+        stop();
       }
       return true;
     }
@@ -120,7 +122,9 @@ async function handleMessage(update: TgUpdate, botId: number, botUsername: strin
   text = text.replace(`@${botUsername}`, "").trim();
   const isReplyToBot = msg.reply_to_message?.from?.id === botId;
   const isPrivate = msg.chat.type === "private";
-  const addressedToBot = mentioned || isReplyToBot || isPrivate;
+  const firstWord = text.split(/[\s,:!?—-]+/)[0]?.toLowerCase() ?? "";
+  const calledByName = NAME_TRIGGERS.includes(firstWord);
+  const addressedToBot = mentioned || isReplyToBot || isPrivate || calledByName;
 
   const from = msg.from?.first_name || msg.from?.username || "Пользователь";
   const context = historyText(chatKey);
@@ -131,16 +135,17 @@ async function handleMessage(update: TgUpdate, botId: number, botUsername: strin
     ts: new Date().toISOString(),
   });
 
-  const agent = await routeMessage(text, context, addressedToBot);
-  if (!agent) return; // обычный разговор людей — агенты не вмешиваются
+  // Адресовано напрямую — отвечаем всегда. Иначе (в группе) — только если человек
+  // чего-то ждёт, чтобы не встревать в разговоры людей между собой.
+  if (!addressedToBot && !(await shouldRespond(text, context))) return;
 
-  await sendTyping(chatId);
+  const agent = ASSISTANT;
   const publish = (t: string) => sendMessage(chatId, t);
+  const stopTyping = keepTyping(chatId);
 
   try {
     const answer = await runAgent(agent, `${from}: ${text}`, context, publish);
-    const reply = `${agent.emoji} ${agent.name}:\n${answer}`;
-    await sendMessage(chatId, reply);
+    await sendMessage(chatId, answer);
     store.addHistory(chatKey, {
       from: agent.name,
       kind: "agent",
@@ -148,11 +153,13 @@ async function handleMessage(update: TgUpdate, botId: number, botUsername: strin
       ts: new Date().toISOString(),
     });
   } catch (err) {
-    console.error(`Ошибка агента ${agent.name}:`, err);
+    console.error("Ошибка ассистента:", err);
     await sendMessage(
       chatId,
-      `⚠️ ${agent.name} не смог(ла) ответить: ${err instanceof Error ? err.message : "ошибка"}`,
+      `⚠️ Не получилось ответить: ${err instanceof Error ? err.message : "ошибка"}. Попробуйте ещё раз.`,
     );
+  } finally {
+    stopTyping();
   }
 }
 

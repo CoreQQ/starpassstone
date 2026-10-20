@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { config } from "./config.js";
-import { AGENTS, AGENT_LIST, AgentDef, AgentId, buildSystemPrompt } from "./agents.js";
+import { AgentDef, buildSystemPrompt } from "./agents.js";
 import { store, Task } from "./store.js";
 import * as meta from "./meta.js";
 import * as mail from "./mail.js";
@@ -15,7 +15,7 @@ function customTools(): Anthropic.Messages.ToolUnion[] {
     {
       name: "remember",
       description:
-        "Сохранить в постоянную память команды факт, предпочтение или указание от владельца/сотрудника. Память видят ВСЕ агенты во всех будущих разговорах. Использовать сразу, как только прозвучало что-то, что нужно учитывать дальше.",
+        "Сохранить в постоянную память факт, предпочтение или указание от владельца/сотрудника. Память учитывается во всех будущих разговорах. Использовать сразу, как только прозвучало что-то, что нужно учитывать дальше.",
       input_schema: {
         type: "object",
         properties: {
@@ -35,23 +35,6 @@ function customTools(): Anthropic.Messages.ToolUnion[] {
         type: "object",
         properties: { id: { type: "integer", description: "Номер записи, например 7" } },
         required: ["id"],
-      },
-    },
-    {
-      name: "save_lesson",
-      description:
-        "Сохранить урок/вывод в общую базу знаний команды, чтобы другие агенты учились на этом опыте. Используй для важных выводов: что сработало, что нет, факты о рынке, клиентах, поставщиках.",
-      input_schema: {
-        type: "object",
-        properties: {
-          lesson: { type: "string", description: "Краткий урок или вывод, 1-2 предложения" },
-          tags: {
-            type: "array",
-            items: { type: "string" },
-            description: "Теги, например: клиенты, реклама, поставщики",
-          },
-        },
-        required: ["lesson"],
       },
     },
     {
@@ -75,23 +58,6 @@ function customTools(): Anthropic.Messages.ToolUnion[] {
         type: "object",
         properties: { id: { type: "integer", description: "Номер задачи, например 12" } },
         required: ["id"],
-      },
-    },
-    {
-      name: "ask_agent",
-      description:
-        "Задать вопрос коллеге-агенту и получить его ответ. Используй, когда вопрос в зоне ответственности коллеги.",
-      input_schema: {
-        type: "object",
-        properties: {
-          agent: {
-            type: "string",
-            enum: AGENT_LIST.map((a) => a.name),
-            description: "Имя коллеги",
-          },
-          question: { type: "string", description: "Конкретный вопрос коллеге с контекстом" },
-        },
-        required: ["agent", "question"],
       },
     },
   ];
@@ -201,18 +167,16 @@ function mailTools(): Anthropic.Messages.ToolUnion[] {
   return tools;
 }
 
-function buildTools(agent: AgentDef): Anthropic.Messages.ToolUnion[] {
+function buildTools(_agent: AgentDef): Anthropic.Messages.ToolUnion[] {
   const tools = customTools();
-  if (agent.webSearch) {
-    tools.push({ type: "web_search_20260209", name: "web_search", max_uses: 3 });
-  }
-  if (agent.id === "marketer" && meta.metaConfigured()) {
-    tools.push(...metaTools());
-  }
-  // Почта — у Алины (общение с клиентами).
-  if (agent.id === "communicator") {
-    tools.push(...mailTools());
-  }
+  // Поиск в интернете — базовая версия: у неё нет своей встроенной песочницы,
+  // поэтому она не конфликтует с отдельным исполнением кода ниже.
+  tools.push({ type: "web_search_20250305", name: "web_search", max_uses: 5 });
+  // Исполнение кода (Python в песочнице Anthropic): сметы, расчёты, конвертации,
+  // анализ данных — агент считает кодом, а не «на глаз».
+  tools.push({ type: "code_execution_20260120", name: "code_execution" });
+  if (meta.metaConfigured()) tools.push(...metaTools());
+  tools.push(...mailTools());
   return tools;
 }
 
@@ -225,7 +189,6 @@ async function executeTool(
   name: string,
   input: Record<string, unknown>,
   publish: Publish,
-  depth: number,
 ): Promise<string> {
   switch (name) {
     case "check_inbox": {
@@ -240,7 +203,9 @@ async function executeTool(
       const result = await mail.sendEmail(to, String(input.subject ?? ""), String(input.body ?? ""));
       // Запоминаем адресата — его ответ мы потом узнаем и покажем в группе.
       store.addContact(to);
-      await publish(`📧 ${agent.name}: отправила письмо на ${to} — «${input.subject}»`);
+      if (result.startsWith("Письмо отправлено")) {
+        await publish(`📧 Письмо отправлено на ${to} — «${input.subject}»`);
+      }
       return result;
     }
     case "meta_list_campaigns":
@@ -254,7 +219,7 @@ async function executeTool(
         String(input.objective ?? "OUTCOME_LEADS"),
         budgetEur > 0 ? Math.round(budgetEur * 100) : undefined,
       );
-      await publish(`📣 ${agent.name}: создал кампанию «${input.name}» (на паузе).`);
+      await publish(`📣 Создана кампания «${input.name}» (на паузе).`);
       return result;
     }
     case "meta_set_campaign_status": {
@@ -263,7 +228,7 @@ async function executeTool(
         input.status === "ACTIVE" ? "ACTIVE" : "PAUSED",
       );
       await publish(
-        `📣 ${agent.name}: кампания ${input.campaign_id} → ${
+        `📣 Кампания ${input.campaign_id} → ${
           input.status === "ACTIVE" ? "ВКЛЮЧЕНА ▶️" : "на паузе ⏸"
         }`,
       );
@@ -275,7 +240,7 @@ async function executeTool(
         String(input.campaign_id ?? ""),
         Math.round(eur * 100),
       );
-      await publish(`📣 ${agent.name}: бюджет кампании ${input.campaign_id} → €${eur}/день`);
+      await publish(`📣 Бюджет кампании ${input.campaign_id} → €${eur}/день`);
       return result;
     }
     case "remember": {
@@ -286,14 +251,6 @@ async function executeTool(
       const ok = store.deleteNote(Number(input.id));
       return ok ? `Запись #${input.id} удалена из памяти.` : `Запись #${input.id} не найдена.`;
     }
-    case "save_lesson": {
-      const lesson = store.addLesson(
-        agent.name,
-        String(input.lesson ?? ""),
-        Array.isArray(input.tags) ? input.tags.map(String) : [],
-      );
-      return `Урок #${lesson.id} сохранён в базу знаний.`;
-    }
     case "create_task": {
       const task = store.addTask(
         agent.name,
@@ -301,37 +258,38 @@ async function executeTool(
         String(input.details ?? ""),
         (input.priority as Task["priority"]) || "средний",
       );
-      await publish(`📌 ${agent.emoji} ${agent.name} поставил(а) задачу: ${formatTask(task)}`);
+      await publish(`📌 Записал задачу: ${formatTask(task)}`);
       return `Задача ${formatTask(task)} создана.`;
     }
     case "complete_task": {
       const task = store.completeTask(Number(input.id));
       if (!task) return `Задача #${input.id} не найдена.`;
-      await publish(`✅ ${agent.name} закрыл(а) задачу ${formatTask(task)}`);
+      await publish(`✅ Закрыл задачу ${formatTask(task)}`);
       return `Задача ${formatTask(task)} отмечена выполненной.`;
-    }
-    case "ask_agent": {
-      const target = AGENT_LIST.find((a) => a.name === input.agent);
-      if (!target) return `Агент "${input.agent}" не найден.`;
-      if (target.id === agent.id) return "Нельзя спрашивать самого себя.";
-      if (depth >= 1) {
-        return "Лимит вложенных обращений исчерпан — ответь на основе своих знаний.";
-      }
-      const question = String(input.question ?? "");
-      await publish(`💬 ${agent.name} → ${target.name}: ${question}`);
-      const answer = await runAgent(
-        target,
-        `Вопрос от коллеги ${agent.name}: ${question}`,
-        "",
-        publish,
-        depth + 1,
-      );
-      await publish(`${target.emoji} ${target.name} → ${agent.name}:\n${answer}`);
-      return `Ответ от ${target.name}: ${answer}`;
     }
     default:
       return `Неизвестный инструмент: ${name}`;
   }
+}
+
+// Серверные инструменты, которые можно «отключить» без потери работоспособности,
+// в порядке отказа: сначала исполнение кода, потом поиск.
+const OPTIONAL_SERVER_TOOLS = ["code_execution", "web_search"];
+
+// Если API отклонил запрос (400) из-за серверного инструмента, который модель/аккаунт
+// не поддерживает, — убираем его и пробуем снова. Так ошибка в наборе инструментов
+// никогда не кладёт бота целиком: в худшем случае он ответит без этого инструмента.
+function dropOneOptionalTool(
+  tools: Anthropic.Messages.ToolUnion[],
+): Anthropic.Messages.ToolUnion[] | null {
+  for (const name of OPTIONAL_SERVER_TOOLS) {
+    const idx = tools.findIndex((t) => "name" in t && t.name === name);
+    if (idx !== -1) {
+      console.warn(`⚠️ API отклонил инструмент «${name}» — продолжаю без него.`);
+      return tools.filter((_, i) => i !== idx);
+    }
+  }
+  return null; // убирать больше нечего
 }
 
 // Запуск одного агента: цикл tool use до финального ответа.
@@ -340,9 +298,8 @@ export async function runAgent(
   userText: string,
   chatContext: string,
   publish: Publish,
-  depth = 0,
 ): Promise<string> {
-  const tools = buildTools(agent);
+  let tools = buildTools(agent);
   const content = chatContext
     ? `Последние сообщения в группе:\n${chatContext}\n\n---\nНовое обращение:\n${userText}`
     : userText;
@@ -361,15 +318,26 @@ export async function runAgent(
   ];
 
   for (let i = 0; i < 12; i++) {
-    const response = await client.messages.create({
-      model: config.model,
-      max_tokens: 8000,
-      thinking: { type: "adaptive" },
-      output_config: { effort: config.agentEffort },
-      system,
-      tools,
-      messages,
-    });
+    let response: Anthropic.Message;
+    try {
+      response = await client.messages.create({
+        model: config.model,
+        max_tokens: 8000,
+        thinking: { type: "adaptive" },
+        output_config: { effort: config.agentEffort },
+        system,
+        tools,
+        messages,
+      });
+    } catch (err) {
+      // 400 на первом шаге — скорее всего неподдерживаемый серверный инструмент.
+      const fallback =
+        err instanceof Anthropic.BadRequestError && i === 0 ? dropOneOptionalTool(tools) : null;
+      if (!fallback) throw err;
+      tools = fallback;
+      i--; // повторяем этот же шаг с урезанным набором инструментов
+      continue;
+    }
 
     messages.push({ role: "assistant", content: response.content });
 
@@ -388,7 +356,6 @@ export async function runAgent(
               block.name,
               block.input as Record<string, unknown>,
               publish,
-              depth,
             );
           } catch (err) {
             result = `Ошибка инструмента: ${err instanceof Error ? err.message : String(err)}`;
@@ -427,55 +394,26 @@ export async function runAgent(
   return "Слишком длинная цепочка действий — остановился. Уточните запрос.";
 }
 
-// Роутер: решает, какой агент должен ответить на сообщение (и надо ли отвечать).
-const ROUTER_SCHEMA = {
+// Фильтр для группы: отвечать ли на сообщение, которое НЕ адресовано боту напрямую.
+// Агент один, поэтому выбирать «кто ответит» не нужно — только «отвечать ли».
+const RESPOND_SCHEMA = {
   type: "object",
-  properties: {
-    respond: { type: "boolean" },
-    agent: {
-      type: "string",
-      enum: [...AGENT_LIST.map((a) => a.id), "none"],
-    },
-  },
-  required: ["respond", "agent"],
+  properties: { respond: { type: "boolean" } },
+  required: ["respond"],
   additionalProperties: false,
 } as const;
 
-export async function routeMessage(
-  text: string,
-  chatContext: string,
-  addressedToBot: boolean,
-): Promise<AgentDef | null> {
-  // Прямое обращение по имени: "Марк, ..." / "Стас ..."
-  const first = text.trim().split(/[\s,:!?—-]+/)[0]?.toLowerCase() ?? "";
-  for (const a of AGENT_LIST) {
-    if (first === a.name.toLowerCase()) return a;
-  }
-
-  // Если бот прямо адресован (упоминание, ответ боту, личка) — отвечаем всегда.
-  // Роутер лишь выбирает агента; при любом сбое отвечает Алина.
-  const roles = AGENT_LIST.map((a) => `${a.id}: ${a.name} — ${a.role}`).join("\n");
-  let response: Anthropic.Message;
+export async function shouldRespond(text: string, chatContext: string): Promise<boolean> {
   try {
-    response = await client.messages.create({
+    const response = await client.messages.create({
       model: config.routerModel,
-      max_tokens: 200,
+      max_tokens: 50,
       system: [
-        "Ты — диспетчер команды AI-агентов в Telegram-группе бизнеса по натуральному камню.",
-        "Реши, какой агент должен ответить на сообщение:",
-        roles,
-        "",
-        "Правила:",
-        "- Вопросы про клиентов, ответы клиентам, скрипты, сделки → communicator.",
-        "- Реклама, таргет, креативы, соцсети, продвижение → marketer.",
-        "- Поиск объектов, заказов, партнёров, тендеров → scout.",
-        "- Поставщики, материалы, цены на камень, инструмент, логистика → supplier.",
-        "- Если непонятно, к кому именно, но человек явно чего-то хочет (вопрос,",
-        "  просьба, «?») — respond=true и выбери самого близкого агента. Лучше",
-        "  ответить, чем промолчать.",
-        addressedToBot
-          ? "- Сообщение адресовано боту напрямую: respond ВСЕГДА true, обязательно выбери агента (никогда none)."
-          : "- respond=false и agent=none ставь ТОЛЬКО если это явно реплика людей друг другу (болтовня, эмодзи, «ок», «спасибо») без вопроса и без просьбы к команде.",
+        "Ты решаешь, должен ли AI-ассистент бизнеса ответить на сообщение в рабочей группе.",
+        "respond=true, если в сообщении есть вопрос, просьба, задача, поручение или человек",
+        "явно ждёт помощи/информации. Лучше ответить, чем промолчать.",
+        "respond=false ТОЛЬКО если это явно реплика людей друг другу без просьбы к ассистенту:",
+        "«ок», «спасибо», «понял», эмодзи, болтовня, ответ одного человека другому.",
       ].join("\n"),
       messages: [
         {
@@ -483,25 +421,15 @@ export async function routeMessage(
           content: `Контекст чата:\n${chatContext || "(пусто)"}\n\nСообщение: ${text}`,
         },
       ],
-      output_config: { format: { type: "json_schema", schema: ROUTER_SCHEMA } },
+      output_config: { format: { type: "json_schema", schema: RESPOND_SCHEMA } },
     });
+    const raw = response.content.find(
+      (b): b is Anthropic.TextBlock => b.type === "text",
+    )?.text;
+    if (!raw) return true;
+    return (JSON.parse(raw) as { respond: boolean }).respond;
   } catch (err) {
-    console.error("Роутер недоступен:", err);
-    // Не молчим, если к боту обратились напрямую.
-    return addressedToBot ? AGENTS.communicator : null;
-  }
-
-  const raw = response.content.find(
-    (b): b is Anthropic.TextBlock => b.type === "text",
-  )?.text;
-  if (!raw) return addressedToBot ? AGENTS.communicator : null;
-  try {
-    const parsed = JSON.parse(raw) as { respond: boolean; agent: AgentId | "none" };
-    if (!parsed.respond || parsed.agent === "none") {
-      return addressedToBot ? AGENTS.communicator : null;
-    }
-    return AGENTS[parsed.agent] ?? (addressedToBot ? AGENTS.communicator : null);
-  } catch {
-    return addressedToBot ? AGENTS.communicator : null;
+    console.error("Фильтр ответа недоступен, отвечаю по умолчанию:", err);
+    return true; // при сбое — лучше ответить
   }
 }
