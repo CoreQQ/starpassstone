@@ -1,0 +1,195 @@
+import nodemailer from "nodemailer";
+import { ImapFlow } from "imapflow";
+import { config } from "./config.js";
+import * as gmail from "./gmail.js";
+
+// Почта. Основной способ — Gmail API (см. gmail.ts): работает на Railway.
+// Запасной — SMTP (отправка) + IMAP (чтение) для хостингов, где SMTP открыт.
+
+function smtpConfigured(): boolean {
+  return Boolean(config.mailUser && config.mailPassword && config.smtpHost);
+}
+
+function imapConfigured(): boolean {
+  return Boolean(config.mailUser && config.mailPassword && config.imapHost);
+}
+
+export function mailSendConfigured(): boolean {
+  return gmail.gmailConfigured() || smtpConfigured();
+}
+
+export function mailReadConfigured(): boolean {
+  return gmail.gmailConfigured() || imapConfigured();
+}
+
+// Почта может заработать позже, без перезапуска: ключи Google заданы,
+// а доступ выдадут командой /gmailauth. Нужно, чтобы заранее запустить проверку входящих.
+export function mailReadPossible(): boolean {
+  return gmail.gmailClientConfigured() || imapConfigured();
+}
+
+let transporter: nodemailer.Transporter | null = null;
+function getTransporter(): nodemailer.Transporter {
+  if (!transporter) {
+    transporter = nodemailer.createTransport({
+      host: config.smtpHost,
+      port: config.smtpPort,
+      secure: config.smtpPort === 465, // 465 = SSL, 587 = STARTTLS
+      auth: { user: config.mailUser, pass: config.mailPassword },
+      // Явные таймауты, чтобы не висеть минутами и давать понятную ошибку.
+      connectionTimeout: 12_000,
+      greetingTimeout: 12_000,
+      socketTimeout: 20_000,
+    });
+  }
+  return transporter;
+}
+
+// Превращаем техническую ошибку почты в понятное объяснение для команды.
+function explainMailError(err: unknown): string {
+  const e = err as { code?: string; responseCode?: number; message?: string };
+  const code = e.code || "";
+  if (code === "EAUTH" || e.responseCode === 535) {
+    return (
+      "почта не приняла логин/пароль. Для Gmail нужен ПАРОЛЬ ПРИЛОЖЕНИЯ (16 букв с " +
+      "myaccount.google.com/apppasswords), а не обычный пароль. Проверьте MAIL_PASSWORD на Railway."
+    );
+  }
+  if (code === "ETIMEDOUT" || code === "ESOCKET" || code === "ECONNECTION") {
+    return (
+      "не удалось соединиться с SMTP-сервером (таймаут). Проверьте SMTP_HOST и SMTP_PORT " +
+      "на Railway (Gmail: smtp.gmail.com, порт 465). Если не помогает — попробуйте порт 587."
+    );
+  }
+  return `техническая ошибка почты: ${e.message || String(err)}`;
+}
+
+export async function verifyMail(): Promise<string> {
+  if (gmail.gmailConfigured()) return gmail.verifyGmail();
+  if (gmail.gmailClientConfigured()) {
+    return "⚠️ Ключи Google заданы, но доступ к ящику ещё не выдан. Выполните /gmailauth в рабочей группе.";
+  }
+  if (!smtpConfigured()) {
+    return (
+      "Почта не настроена. Добавьте на Railway GMAIL_CLIENT_ID и GMAIL_CLIENT_SECRET, " +
+      "затем выполните /gmailauth в рабочей группе."
+    );
+  }
+  try {
+    await getTransporter().verify();
+    return `✅ Почта подключена: ${config.mailUser} (SMTP ${config.smtpHost}:${config.smtpPort}).`;
+  } catch (err) {
+    return `❌ Почта не работает — ${explainMailError(err)}`;
+  }
+}
+
+export async function sendEmail(to: string, subject: string, body: string): Promise<string> {
+  if (gmail.gmailConfigured()) return gmail.sendGmail(to, subject, body);
+  try {
+    const info = await getTransporter().sendMail({
+      from: `"${config.mailFromName}" <${config.mailUser}>`,
+      to,
+      subject,
+      text: body,
+    });
+    return `Письмо отправлено на ${to} (id: ${info.messageId}).`;
+  } catch (err) {
+    // Возвращаем понятную причину — агент перескажет её владельцу.
+    return `НЕ ОТПРАВЛЕНО — ${explainMailError(err)}`;
+  }
+}
+
+export interface IncomingEmail {
+  uid: number | string;
+  from: string;
+  subject: string;
+  date: string;
+  text: string;
+}
+
+async function withImap<T>(fn: (client: ImapFlow) => Promise<T>): Promise<T> {
+  const client = new ImapFlow({
+    host: config.imapHost,
+    port: config.imapPort,
+    secure: true,
+    auth: { user: config.mailUser, pass: config.mailPassword },
+    logger: false,
+  });
+  await client.connect();
+  try {
+    return await fn(client);
+  } finally {
+    await client.logout().catch(() => {});
+  }
+}
+
+function firstText(source: unknown): string {
+  const s = typeof source === "string" ? source : "";
+  return s.replace(/\s+/g, " ").trim().slice(0, 1500);
+}
+
+// Новые письма для автоуведомлений. Gmail API — без изменений в ящике;
+// IMAP — помечает письма прочитанными, чтобы не слать повторно.
+export async function fetchUnseen(limit = 10): Promise<IncomingEmail[]> {
+  if (gmail.gmailConfigured()) return gmail.fetchNewGmail();
+  if (!imapConfigured()) return [];
+  return withImap(async (client) => {
+    const lock = await client.getMailboxLock("INBOX");
+    try {
+      const uids = await client.search({ seen: false }, { uid: true });
+      const pick = (uids || []).slice(-limit);
+      const out: IncomingEmail[] = [];
+      for (const uid of pick) {
+        const msg = await client.fetchOne(
+          String(uid),
+          { envelope: true, source: true },
+          { uid: true },
+        );
+        if (!msg || !msg.envelope) continue;
+        const fromAddr = msg.envelope.from?.[0];
+        out.push({
+          uid,
+          from: fromAddr ? `${fromAddr.name || ""} <${fromAddr.address || ""}>`.trim() : "неизвестно",
+          subject: msg.envelope.subject || "(без темы)",
+          date: msg.envelope.date ? new Date(msg.envelope.date).toISOString() : "",
+          text: firstText(msg.source?.toString()),
+        });
+      }
+      // Помечаем прочитанными, чтобы не слать повторно.
+      if (pick.length) {
+        await client.messageFlagsAdd(pick, ["\\Seen"], { uid: true });
+      }
+      return out;
+    } finally {
+      lock.release();
+    }
+  });
+}
+
+// Последние письма (для запроса «покажи входящие») — не меняем флаги.
+export async function fetchRecent(limit = 8): Promise<IncomingEmail[]> {
+  if (gmail.gmailConfigured()) return gmail.fetchRecentGmail(limit);
+  return withImap(async (client) => {
+    const lock = await client.getMailboxLock("INBOX");
+    try {
+      const status = await client.status("INBOX", { messages: true });
+      const total = status.messages || 0;
+      if (total === 0) return [];
+      const start = Math.max(1, total - limit + 1);
+      const out: IncomingEmail[] = [];
+      for await (const msg of client.fetch(`${start}:*`, { envelope: true })) {
+        const fromAddr = msg.envelope?.from?.[0];
+        out.push({
+          uid: msg.uid,
+          from: fromAddr ? `${fromAddr.name || ""} <${fromAddr.address || ""}>`.trim() : "неизвестно",
+          subject: msg.envelope?.subject || "(без темы)",
+          date: msg.envelope?.date ? new Date(msg.envelope.date).toISOString() : "",
+          text: "",
+        });
+      }
+      return out.reverse();
+    } finally {
+      lock.release();
+    }
+  });
+}

@@ -1,0 +1,110 @@
+import { config } from "./config.js";
+import { ASSISTANT } from "./agents.js";
+import { runAgent, Publish } from "./orchestrator.js";
+import { store } from "./store.js";
+import * as mail from "./mail.js";
+
+function nowInTz(): { date: string; hour: number } {
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: config.timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    hour12: false,
+  });
+  const parts = fmt.formatToParts(new Date());
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  return {
+    date: `${get("year")}-${get("month")}-${get("day")}`,
+    hour: Number(get("hour")),
+  };
+}
+
+// Утренняя планёрка: ассистент предлагает план на день по всем направлениям.
+async function morningStandup(publish: Publish): Promise<void> {
+  try {
+    const answer = await runAgent(
+      ASSISTANT,
+      [
+        "Утро. Предложи 2–3 самых полезных шага на сегодня по всем направлениям бизнеса",
+        "(клиенты, реклама, объекты, снабжение) с учётом памяти и открытых задач.",
+        "По-человечески, без официоза. Задачи не создавай.",
+      ].join(" "),
+      "",
+      publish,
+    );
+    await publish(`☀️ План на сегодня\n\n${answer}`);
+  } catch (err) {
+    console.error("Планёрка: ошибка ассистента:", err);
+  }
+}
+
+// Вечерний отчёт: без вызовов Claude — напоминание об открытых задачах.
+// Если задач нет — молчим, чтобы не слать пустое «Открытых задач: 0» каждый день.
+async function eveningReport(publish: Publish): Promise<void> {
+  const tasks = store.openTasks(30);
+  if (tasks.length === 0) return;
+  const lines = [`🌙 Открытые задачи (${tasks.length}):`];
+  for (const t of tasks) {
+    lines.push(`#${t.id} [${t.priority}] ${t.title}`);
+  }
+  await publish(lines.join("\n"));
+}
+
+// Новые входящие письма — публикуем в группу по выбранному фильтру.
+let mailBusy = false;
+async function checkMail(publish: Publish): Promise<void> {
+  if (mailBusy) return; // не запускать проверку поверх предыдущей
+  if (!mail.mailReadConfigured()) return; // например, /gmailauth ещё не выполнен
+  mailBusy = true;
+  try {
+    const emails = await mail.fetchUnseen(20);
+    for (const e of emails) {
+      // Фильтр: в режиме "replies" показываем только ответы от тех,
+      // кому мы уже писали (рассылки и незнакомцы игнорируются).
+      if (config.mailNotify === "replies" && !store.isKnownContact(e.from)) continue;
+
+      const preview = e.text ? `\n\n${e.text.slice(0, 400)}` : "";
+      await publish(
+        `📬 Ответ от клиента\nОт: ${e.from}\nТема: ${e.subject}${preview}\n\n` +
+          `Ответьте «да, ответь…» — и я подготовлю письмо.`,
+      );
+    }
+  } catch (err) {
+    console.error("Ошибка проверки почты:", err);
+  } finally {
+    mailBusy = false;
+  }
+}
+
+// Проверяем раз в минуту, не пора ли провести планёрку/отчёт.
+export function startScheduler(publish: Publish): void {
+  setInterval(async () => {
+    const { date, hour } = nowInTz();
+    try {
+      if (hour === config.morningHour && store.getState("lastMorning") !== date) {
+        store.setState("lastMorning", date);
+        await morningStandup(publish);
+      }
+      if (hour === config.eveningHour && store.getState("lastEvening") !== date) {
+        store.setState("lastEvening", date);
+        await eveningReport(publish);
+      }
+    } catch (err) {
+      console.error("Ошибка планировщика:", err);
+    }
+  }, 60_000);
+
+  // Отдельный цикл проверки почты (только если уведомления не выключены).
+  if (mail.mailReadPossible() && config.mailPollMinutes > 0 && config.mailNotify !== "off") {
+    setInterval(
+      () => void checkMail(publish),
+      Math.max(1, config.mailPollMinutes) * 60_000,
+    );
+    const what = config.mailNotify === "replies" ? "ответы клиентов" : "все входящие";
+    console.log(`📬 Проверка почты каждые ${config.mailPollMinutes} мин (${what}).`);
+  } else if (mail.mailReadPossible()) {
+    console.log("📭 Уведомления о почте выключены (MAIL_NOTIFY=off).");
+  }
+}
