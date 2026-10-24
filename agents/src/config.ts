@@ -54,10 +54,15 @@ export const config = {
   metaAccessToken: env("META_ACCESS_TOKEN"),
   metaAdAccountId: env("META_AD_ACCOUNT_ID"),
   metaApiVersion: env("META_API_VERSION") || "v23.0",
-  // Почта — опционально. Отправка: Brevo (HTTP, работает на Railway) или SMTP.
-  brevoApiKey: env("BREVO_API_KEY"),
-  mailUser: env("MAIL_USER"), // адрес-отправитель (в Brevo — подтверждённый sender)
-  mailPassword: env("MAIL_PASSWORD"), // пароль приложения (только для SMTP)
+  // Почта — опционально. Основной способ — Gmail API (работает на Railway):
+  // ключи приложения Google Cloud, доступ выдаётся командой /gmailauth в группе.
+  gmailClientId: env("GMAIL_CLIENT_ID"),
+  gmailClientSecret: env("GMAIL_CLIENT_SECRET"),
+  // Необязательно: постоянный ключ можно задать вручную вместо /gmailauth.
+  gmailRefreshToken: env("GMAIL_REFRESH_TOKEN"),
+  // Запасной способ — SMTP/IMAP (для VPS; на Railway SMTP заблокирован).
+  mailUser: env("MAIL_USER"),
+  mailPassword: env("MAIL_PASSWORD"),
   smtpHost: env("SMTP_HOST"),
   smtpPort: env("SMTP_PORT") ? Number(env("SMTP_PORT")) : 465,
   imapHost: env("IMAP_HOST"),

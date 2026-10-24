@@ -6,6 +6,7 @@ import { isChatter } from "./filter.js";
 import { startScheduler } from "./scheduler.js";
 import { store } from "./store.js";
 import * as mail from "./mail.js";
+import * as gmail from "./gmail.js";
 
 function historyText(chatId: string): string {
   return store
@@ -26,7 +27,7 @@ const HELP = [
   "• Он сам ищет в интернете и считает кодом (сметы, площади, цены, конвертации).",
   "• Скажите «запомни: ...» — это станет постоянным правилом (/notes — посмотреть).",
   "• /tasks — задачи, /cleartasks — закрыть все, /standup — план на сегодня.",
-  "• /mailtest — проверить подключение почты.",
+  "• /gmailauth — подключить Gmail (в рабочей группе), /mailtest — проверить почту.",
 ].join("\n");
 
 // Telegram гасит «печатает…» через ~5 секунд. Пока ассистент работает
@@ -37,9 +38,61 @@ function keepTyping(chatId: number): () => void {
   return () => clearInterval(timer);
 }
 
-async function handleCommand(chatId: number, cmd: string): Promise<boolean> {
-  const publish = (text: string) => sendMessage(chatId, text);
+async function handleCommand(
+  chatId: number,
+  cmd: string,
+  text: string,
+  inTeamGroup: boolean,
+): Promise<boolean> {
+  const publish = (t: string) => sendMessage(chatId, t);
   switch (cmd) {
+    case "/gmailauth": {
+      // Только из рабочей группы: иначе посторонний мог бы написать боту в личку
+      // и подменить ящик, с которого уходят письма клиентам.
+      if (!inTeamGroup) {
+        await publish("Подключать почту можно только в рабочей группе.");
+        return true;
+      }
+      if (!gmail.gmailClientConfigured()) {
+        await publish(
+          "Сначала добавьте на Railway переменные GMAIL_CLIENT_ID и GMAIL_CLIENT_SECRET " +
+            "(ключи приложения из Google Cloud), дождитесь перезапуска и повторите /gmailauth.",
+        );
+        return true;
+      }
+      await publish(
+        [
+          "🔐 Подключение Gmail",
+          "",
+          `1. Откройте ссылку: ${gmail.startAuth()}`,
+          "2. Войдите в аккаунт, с которого будут уходить письма клиентам.",
+          "3. Если Google напишет «Приложение не проверено» — нажмите «Дополнительно» → «Перейти на страницу…». Это ваше собственное приложение, так и должно быть.",
+          "4. Разрешите доступ к отправке и чтению почты.",
+          "5. Откроется страница с ошибкой «Не удаётся открыть страницу» — это нормально. Скопируйте ПОЛНЫЙ адрес этой страницы из адресной строки (начинается с http://localhost) и отправьте сюда так:",
+          "/gmailcode <адрес страницы>",
+          "",
+          "Ссылка действует 15 минут.",
+        ].join("\n"),
+      );
+      return true;
+    }
+    case "/gmailcode": {
+      if (!inTeamGroup) {
+        await publish("Подключать почту можно только в рабочей группе.");
+        return true;
+      }
+      const arg = text.replace(/^\/\S+/, "").trim();
+      if (!arg) {
+        await publish("Отправьте адрес страницы так: /gmailcode http://localhost/?state=...&code=...");
+        return true;
+      }
+      try {
+        await publish(await gmail.finishAuth(arg));
+      } catch (err) {
+        await publish(`❌ Не получилось подключить Gmail: ${(err as Error).message}`);
+      }
+      return true;
+    }
     case "/start":
     case "/help":
       await publish(HELP);
@@ -55,13 +108,6 @@ async function handleCommand(chatId: number, cmd: string): Promise<boolean> {
       return true;
     }
     case "/mailtest": {
-      if (!mail.mailSendConfigured()) {
-        await publish(
-          "Почта не настроена. Добавьте на Railway переменные MAIL_USER, MAIL_PASSWORD, SMTP_HOST, IMAP_HOST (см. .env.example).",
-        );
-        return true;
-      }
-      await publish("Проверяю подключение к почте…");
       await publish(await mail.verifyMail());
       return true;
     }
@@ -116,7 +162,10 @@ async function handleMessage(update: TgUpdate, botId: number, botUsername: strin
   // Команды.
   const cmd = text.split(/[\s@]/)[0];
   if (cmd.startsWith("/")) {
-    if (await handleCommand(chatId, cmd)) return;
+    // Рабочая группа — та, что задана в TELEGRAM_GROUP_ID. Если она не задана,
+    // «доверенной» группы нет, и подключение почты недоступно.
+    const inTeamGroup = Boolean(config.telegramGroupId) && chatKey === config.telegramGroupId;
+    if (await handleCommand(chatId, cmd, text, inTeamGroup)) return;
   }
 
   const mentioned = text.includes(`@${botUsername}`);

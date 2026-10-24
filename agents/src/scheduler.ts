@@ -56,6 +56,7 @@ async function eveningReport(publish: Publish): Promise<void> {
 let mailBusy = false;
 async function checkMail(publish: Publish): Promise<void> {
   if (mailBusy) return; // не запускать проверку поверх предыдущей
+  if (!mail.mailReadConfigured()) return; // например, /gmailauth ещё не выполнен
   mailBusy = true;
   try {
     const emails = await mail.fetchUnseen(20);
@@ -96,14 +97,14 @@ export function startScheduler(publish: Publish): void {
   }, 60_000);
 
   // Отдельный цикл проверки почты (только если уведомления не выключены).
-  if (mail.mailReadConfigured() && config.mailPollMinutes > 0 && config.mailNotify !== "off") {
+  if (mail.mailReadPossible() && config.mailPollMinutes > 0 && config.mailNotify !== "off") {
     setInterval(
       () => void checkMail(publish),
       Math.max(1, config.mailPollMinutes) * 60_000,
     );
     const what = config.mailNotify === "replies" ? "ответы клиентов" : "все входящие";
     console.log(`📬 Проверка почты каждые ${config.mailPollMinutes} мин (${what}).`);
-  } else if (mail.mailReadConfigured()) {
+  } else if (mail.mailReadPossible()) {
     console.log("📭 Уведомления о почте выключены (MAIL_NOTIFY=off).");
   }
 }
